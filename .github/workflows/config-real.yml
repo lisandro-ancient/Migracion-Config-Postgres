@@ -34,7 +34,7 @@ jobs:
       FIREBIRD_RUNTIME_DIR: ${{ vars.FIREBIRD_RUNTIME_DIR }}
       SKIP_ALLURE_REPORT: "1"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Entorno
         run: |
           python3 -m venv .venv

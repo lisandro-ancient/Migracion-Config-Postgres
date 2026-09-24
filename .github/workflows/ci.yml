@@ -52,7 +52,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/preparar
       - name: Lint (ruff)
         run: ruff check src dashboard tests ci --output-format=github
@@ -82,7 +82,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Un cambio visible debe anotarse en "Sin publicar"
@@ -106,7 +106,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0  # historial completo para buscar secretos en todos los commits
       - uses: ./.github/actions/preparar
@@ -130,7 +130,7 @@ jobs:
     env:
       COVERAGE_FILE: .coverage.unitarias
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/preparar
         with:
           python-version: ${{ matrix.python }}
@@ -172,7 +172,7 @@ jobs:
     env:
       COVERAGE_FILE: .coverage.integracion
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/preparar
         with:
           replica-firebird: "true"
@@ -197,7 +197,7 @@ jobs:
     env:
       COVERAGE_FILE: .coverage.diferencial
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/preparar
         with:
           replica-firebird: "true"
@@ -234,7 +234,7 @@ jobs:
     env:
       COVERAGE_FILE: .coverage.e2e
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/preparar
         with:
           replica-firebird: "true"
@@ -266,7 +266,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/preparar
       - uses: actions/download-artifact@v4
         with:
@@ -292,7 +292,7 @@ jobs:
     timeout-minutes: 25
     services: *servicios
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/preparar
         with:
           replica-firebird: "true"
@@ -343,7 +343,7 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Nombre de la imagen (GHCR exige minúsculas)
@@ -393,7 +393,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - uses: actions/setup-python@v5
