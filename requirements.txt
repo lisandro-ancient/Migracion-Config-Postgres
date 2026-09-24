@@ -1,5 +1,5 @@
 firebird-driver>=2.0,<3
-psycopg[binary]>=3.2,<4
+psycopg[binary]>=3.3.6,<4
 pydantic>=2.12,<3
 pyyaml>=6,<7
 rich>=15,<16
