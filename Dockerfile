@@ -1,7 +1,7 @@
 # Imagen del panel (Centro de control de migración) y de la CLI.
 # Cliente de Firebird: libfbclient2 de Debian (se conecta por red a un Firebird Server;
 # el modo embebido de macOS no aplica dentro del contenedor).
-FROM python:3.12-slim
+FROM python:3.14-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
