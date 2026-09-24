@@ -1,0 +1,19 @@
+# BORRADOR generado desde el esquema real de VERSIONES_DB (config_microsip.generador).
+# Revisar cada regla antes de pasar a 'estado: vigente'. Nada aquí es una decisión de negocio verificada.
+# Filas en origen al generar: 23
+#
+# (sin observaciones)
+
+fuente: config
+estado: borrador
+tabla_origen: VERSIONES_DB
+tabla_destino: versiones_db
+llave_primaria: version_db
+fixture: fixtures/config/versiones_db_raw_snapshot.json
+depende_de: []
+catalogos: []
+
+campos:
+  - {origen: "VERSION_DB", destino: version_db, regla: entero, nulo_permitido: false}
+  - {origen: "FECHA_HORA_CREACION", destino: fecha_hora_creacion, regla: timestamp, nulo_permitido: true}
+  - {origen: "PASO_ACTUAL", destino: paso_actual, regla: entero, nulo_permitido: false}

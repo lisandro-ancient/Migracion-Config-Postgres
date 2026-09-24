@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block titulo %}Panel{% endblock %}
+{% block migas %}Panel{% endblock %}
+{% block contenido %}
+<div class="page-head">
+  <div><h2>Panel</h2><p>Vista en tiempo real de la migración de CONFIG</p></div>
+  <div class="actions">
+    <span class="timestamp" id="now">{{ sistema.comprobado_en | fecha_hora }} · <span id="clock"></span></span>
+    {% if fuente_defecto %}
+    <form method="post" action="/jobs" class="inline actions">
+      <input type="hidden" name="fuente" value="{{ fuente_defecto }}">
+      <input type="hidden" name="permitir_borrador" value="1">
+      <label><input type="checkbox" name="firebird_real" value="1" {% if sistema.firebird.ok and sistema.firebird.es_base_config %}checked{% endif %}> Leer Firebird en vivo</label>
+      <button class="refresh primary" type="submit" {% if ocupado %}disabled title="Ya hay un trabajo en curso"{% endif %}>▶ Ejecutar migración</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{{ flash(error, mensaje) }}
+<div id="dashboard-live" hx-get="/fragmento/dashboard" hx-trigger="every 3s" hx-swap="innerHTML">
+  {% include "_dashboard.html" %}
+</div>
+{% endblock %}

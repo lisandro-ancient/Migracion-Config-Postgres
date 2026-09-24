@@ -1,0 +1,20 @@
+# BORRADOR generado desde el esquema real de BOOKMARKS_REPORTES (config_microsip.generador).
+# Revisar cada regla antes de pasar a 'estado: vigente'. Nada aquí es una decisión de negocio verificada.
+# Filas en origen al generar: 0
+#
+# (sin observaciones)
+
+fuente: config
+estado: borrador
+tabla_origen: BOOKMARKS_REPORTES
+tabla_destino: bookmarks_reportes
+llave_primaria: [reporte_id, objeto_id]
+fixture: fixtures/config/bookmarks_reportes_raw_snapshot.json
+depende_de: []
+catalogos: []
+
+campos:
+  - {origen: "REPORTE_ID", destino: reporte_id, regla: entero, nulo_permitido: false}
+  - {origen: "OBJETO_ID", destino: objeto_id, regla: entero, nulo_permitido: false}
+  - {origen: "FECHA", destino: fecha, regla: fecha, nulo_permitido: true}
+  - {origen: "ORDEN_SELECCION", destino: orden_seleccion, regla: entero, nulo_permitido: true}

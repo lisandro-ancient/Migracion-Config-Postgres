@@ -1,0 +1,10 @@
+# Manifiesto SINTÉTICO de prueba (ver tests/datos/LEEME.md): tabla padre de ELEMENTOS.
+fuente: prueba
+estado: vigente
+tabla_origen: GRUPOS
+tabla_destino: grupos
+llave_primaria: grupo_id
+fixture: fixtures/prueba/grupos_raw_snapshot.json
+campos:
+  - {origen: GRUPO_ID, destino: grupo_id, regla: entero}
+  - {origen: NOMBRE, destino: nombre, regla: texto}

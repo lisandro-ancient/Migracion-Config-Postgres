@@ -1,0 +1,61 @@
+# Verificación contra la CONFIG REAL — manual, en un runner self-hosted que tenga
+# acceso a una copia de CONFIG.FDB (como el runner de docs-microsip).
+#
+# No corre en PRs ni en push: la CONFIG real no está (ni debe estar) en GitHub.
+# Solo lee Firebird (transacción READ ONLY); escribe en el PostgreSQL local del runner.
+#
+# Requisitos del runner: etiqueta "config-microsip", Docker, y estos secretos/variables
+# del repositorio: FIREBIRD_DATABASE, FIREBIRD_PASSWORD (secretos) y, en modo embebido,
+# FIREBIRD_CLIENT_LIBRARY y FIREBIRD_RUNTIME_DIR (variables).
+
+name: Verificación contra CONFIG real (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      migrar:
+        description: "Además de validar, migrar a PostgreSQL y correr el diferencial"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  config-real:
+    runs-on: [self-hosted, config-microsip]
+    timeout-minutes: 30
+    env:
+      FIREBIRD_DATABASE: ${{ secrets.FIREBIRD_DATABASE }}
+      FIREBIRD_PASSWORD: ${{ secrets.FIREBIRD_PASSWORD }}
+      FIREBIRD_USER: SYSDBA
+      FIREBIRD_HOST: ${{ vars.FIREBIRD_HOST }}
+      FIREBIRD_CLIENT_LIBRARY: ${{ vars.FIREBIRD_CLIENT_LIBRARY }}
+      FIREBIRD_RUNTIME_DIR: ${{ vars.FIREBIRD_RUNTIME_DIR }}
+      SKIP_ALLURE_REPORT: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Entorno
+        run: |
+          python3 -m venv .venv
+          ./.venv/bin/pip install -q -r requirements-dev.txt
+          ./.venv/bin/pip install -q -e . --no-deps
+          docker compose up -d --wait
+      - name: Es la base CONFIG y la conexión es de solo lectura
+        run: ./.venv/bin/python -m config_microsip.cli verificar-conexion
+      - name: Validar cada tabla contra el origen
+        run: |
+          for t in $(ls fuentes/config/manifiestos/*.yaml | xargs -n1 basename | sed 's/.yaml$//'); do
+            ./.venv/bin/python -m config_microsip.cli extraer --tabla "$t" --firebird-real > /dev/null || { echo "::error::$t no pasó la validación"; exit 1; }
+          done
+      - name: Migrar y comparar
+        if: inputs.migrar
+        run: |
+          COLUMNS=160 ./.venv/bin/python -m config_microsip.cli migrar-todo --firebird-real --permitir-borrador
+          ./.venv/bin/pytest -q -o addopts= tests/test_diferencial_config.py tests/test_firebird_real.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: evidencia-config-real
+          path: runs/
+          retention-days: 30

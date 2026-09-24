@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge, flash %}
+{% block titulo %}Tablas{% endblock %}
+{% block migas %}Tablas{% endblock %}
+{% block contenido %}
+<div class="page-head"><div><h2>Tablas</h2><p>Un manifiesto por tabla: valídala contra el origen o mígrala por separado (sus tablas padre deben estar migradas).</p></div></div>
+{{ flash(error, mensaje) }}
+{% for f in fuentes %}
+<div class="card table-card" id="{{ f.fuente }}"><div class="panel" style="padding-bottom:5px"><div class="panel-title"><h3>Fuente: {{ f.fuente }}</h3><span class="muted" style="font-size:10px">{{ f.tablas | length }} manifiestos</span></div></div>
+<div class="table-wrap"><table>
+  <thead><tr><th>Tabla</th><th>Manifiesto</th><th>Depende de</th><th>Última validación</th><th>Última migración</th><th>Acciones</th></tr></thead>
+  <tbody>
+  {% for t in f.tablas %}
+    <tr><td><b>{{ t.tabla }}</b><br><span class="muted">{{ t.manifiesto.tabla_origen }} · {{ t.manifiesto.campos | length }} columnas</span></td>
+      <td>{% if t.manifiesto.estado == "vigente" %}<span class="badge success">vigente</span>{% else %}<span class="badge draftb">borrador</span>{% endif %}</td>
+      <td>{% for n in t.grafo.orden_de_extraccion if n != t.manifiesto.tabla_destino %}<span class="node">{{ n }}</span> {% else %}<span class="muted">—</span>{% endfor %}</td>
+      <td>{% if t.validacion %}<a href="/corrida/{{ t.validacion.run_id }}">{{ badge(t.validacion.estado) }}</a> <span class="muted">{{ t.validacion.iniciado_en | fecha_hora }}</span>{% else %}{{ badge(none) }}{% endif %}</td>
+      <td>{% if t.migracion %}<a href="/corrida/{{ t.migracion.run_id }}">{{ badge(t.migracion.estado) }}</a> <span class="muted">{{ t.migracion.iniciado_en | fecha_hora }}</span>{% else %}{{ badge(none) }}{% endif %}</td>
+      <td class="actions">
+        <form method="post" action="/fuente/{{ f.fuente }}/tabla/{{ t.tabla }}/extraer" class="inline actions">
+          <label><input type="checkbox" name="firebird_real" value="1" {% if sistema.firebird.ok and sistema.firebird.es_base_config and f.fuente == "config" %}checked{% endif %}> en vivo</label>
+          <button class="btn" type="submit">▶ Validar</button></form>
+        <form method="post" action="/fuente/{{ f.fuente }}/tabla/{{ t.tabla }}/migrar" class="inline actions">
+          <input type="hidden" name="permitir_borrador" value="1">
+          <label><input type="checkbox" name="firebird_real" value="1" {% if sistema.firebird.ok and sistema.firebird.es_base_config and f.fuente == "config" %}checked{% endif %}> en vivo</label>
+          <button class="btn solid" type="submit" {% if ocupado %}disabled{% endif %}>⇪ Migrar</button></form>
+      </td></tr>
+  {% else %}<tr><td colspan="6" class="empty">Todavía no hay manifiestos: ve a Esquema en vivo para generar borradores.</td></tr>{% endfor %}
+  </tbody></table></div></div>
+{% else %}<div class="card panel"><div class="empty">No hay fuentes en fuentes/.</div></div>{% endfor %}
+{% endblock %}

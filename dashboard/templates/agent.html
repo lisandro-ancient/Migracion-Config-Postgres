@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge, dot %}
+{% block titulo %}Agente IA{% endblock %}
+{% block migas %}Agente IA{% endblock %}
+{% block contenido %}
+<div class="page-head"><div><h2>Agente de migración con IA</h2><p>Observa, analiza y recomienda acciones de migración; una persona las aprueba editando el manifiesto.</p></div>
+  <span class="job-status {{ 'idle' if not pendientes }}">● {{ pendientes | length }} decisiones abiertas</span></div>
+<div class="notice">✦ El agente es una sesión de Claude conectada al servidor MCP <code>config-microsip</code> de este proyecto (registrado en <code>.mcp.json</code>). Puede inspeccionar CONFIG, redactar manifiestos, ejecutar validaciones, migraciones y comparaciones diferenciales, y leer cada resultado que se muestra aquí. Nunca modifica Firebird y nada de esto se aprueba solo: aprobar una recomendación significa editar el manifiesto en <code>fuentes/</code> y volver a ejecutar.</div>
+<div class="grid two">
+  <div class="card panel"><div class="panel-title"><h3>Decisiones abiertas en los manifiestos</h3><span class="muted" style="font-size:10px">{{ pendientes | length }}</span></div>
+    {% for p in pendientes %}
+      <div class="activity-row"><span class="activity-dot {{ 'fail' if p.tipo == 'invalid' else 'run' }}"></span>
+        <span><b>{{ p.fuente }}.{{ p.tabla }}</b> {% if p.tipo == "draft" %}<span class="badge draftb">borrador</span>{% endif %}<br>{{ p.texto }}</span></div>
+    {% else %}<div class="empty up">✓ Todos los manifiestos están revisados (estado: vigente) y sin notas abiertas.</div>{% endfor %}
+  </div>
+  <div class="card panel"><div class="panel-title"><h3>Cómo actuar sobre una recomendación</h3></div>
+    <ol style="font-size:11px;color:#5f748c;line-height:1.9;padding-left:18px;margin:0">
+      <li>Pídeselo al agente en Claude Code, por ejemplo: <i>«revisa el manifiesto de USUARIOS y propón reglas para ESTATUS»</i>. Usará <code>describir_tabla_config</code> y <code>previsualizar_registro</code>.</li>
+      <li>Edita <code>fuentes/config/manifiestos/&lt;tabla&gt;.yaml</code> (o deja que el agente lo edite) y pon <code>estado: vigente</code>.</li>
+      <li>Ejecuta un <a href="/jobs">trabajo de migración</a>: vuelve a validar, recarga PostgreSQL y termina con una <a href="/data">comparación diferencial</a>.</li>
+    </ol>
+    <h4>Herramientas disponibles para el agente (MCP)</h4>
+    <p style="font-size:10px;color:#5f748c;line-height:1.8">verificar_conexion · listar_tablas_config · describir_tabla_config · generar_borrador_manifiesto · capturar_snapshot · listar_manifiestos_tool · obtener_grafo_dependencias · listar_entradas_crudas · previsualizar_registro · extraer_y_validar_tabla · obtener_ultima_corrida · verificar_postgres · migrar_tabla_postgres · migrar_todo_postgres · consultar_registro_postgres · comparar_diferencial · correr_pruebas · iniciar_dashboard</p>
+  </div>
+</div>
+<div class="card panel" style="margin-top:14px"><div class="panel-title"><h3>Actividad reciente que el agente puede leer</h3></div>
+  {% for e in actividad %}<div class="activity-row"><span class="{{ dot(e.estado) }}"></span><span class="activity-time" style="width:110px">{{ e.cuando | fecha_hora }}</span><span><a href="{{ e.enlace }}">{{ e.texto }}</a> — {{ badge(e.estado) }}</span></div>
+  {% else %}<div class="empty">Todavía no hay nada registrado.</div>{% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,27 @@
+# BORRADOR generado desde el esquema real de CUENTAS_WHATSAPP (config_microsip.generador).
+# Revisar cada regla antes de pasar a 'estado: vigente'. Nada aquí es una decisión de negocio verificada.
+# Filas en origen al generar: 0
+#
+# - TOKEN: excluida — contiene credenciales; no debe terminar en un snapshot
+
+fuente: config
+estado: borrador
+tabla_origen: CUENTAS_WHATSAPP
+tabla_destino: cuentas_whatsapp
+llave_primaria: cuenta_whatsapp_id
+fixture: fixtures/config/cuentas_whatsapp_raw_snapshot.json
+depende_de: []
+catalogos: []
+
+campos:
+  - {origen: "CUENTA_WHATSAPP_ID", destino: cuenta_whatsapp_id, regla: entero, nulo_permitido: false}
+  - {origen: "NOMBRE", destino: nombre, regla: texto, nulo_permitido: false}
+  - {origen: "NOMBRE_USUARIO", destino: nombre_usuario, regla: texto, nulo_permitido: false}
+  - {origen: "NUM_TELEFONO", destino: num_telefono, regla: texto, nulo_permitido: false}
+  - {origen: "ID_NUM_TELEFONO", destino: id_num_telefono, regla: texto, nulo_permitido: false}
+  - {origen: "ID_BUSINESS", destino: id_business, regla: texto, nulo_permitido: false}
+  - {origen: "ID_BUSINESS_ACCOUNT", destino: id_business_account, regla: texto, nulo_permitido: false}
+  - {origen: "USUARIO_CREADOR", destino: usuario_creador, regla: texto, nulo_permitido: true}
+  - {origen: "FECHA_HORA_CREACION", destino: fecha_hora_creacion, regla: timestamp, nulo_permitido: true}
+  - {origen: "USUARIO_ULT_MODIF", destino: usuario_ult_modif, regla: texto, nulo_permitido: true}
+  - {origen: "FECHA_HORA_ULT_MODIF", destino: fecha_hora_ult_modif, regla: timestamp, nulo_permitido: true}

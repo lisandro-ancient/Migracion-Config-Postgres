@@ -1,0 +1,23 @@
+# BORRADOR generado desde el esquema real de RB_ITEM (config_microsip.generador).
+# Revisar cada regla antes de pasar a 'estado: vigente'. Nada aquí es una decisión de negocio verificada.
+# Filas en origen al generar: 0
+#
+# - TEMPLATE (BLOB): excluida — sin regla para la categoría 'blob'
+
+fuente: config
+estado: borrador
+tabla_origen: RB_ITEM
+tabla_destino: rb_item
+llave_primaria: [folder_id, item_type, name, modified]
+fixture: fixtures/config/rb_item_raw_snapshot.json
+depende_de: []
+catalogos: []
+
+campos:
+  - {origen: "ITEM_ID", destino: item_id, regla: entero, nulo_permitido: true}
+  - {origen: "FOLDER_ID", destino: folder_id, regla: entero, nulo_permitido: false}
+  - {origen: "NAME", destino: name, regla: texto, nulo_permitido: false}
+  - {origen: "ITEM_SIZE", destino: item_size, regla: entero, nulo_permitido: true}
+  - {origen: "ITEM_TYPE", destino: item_type, regla: entero, nulo_permitido: false}
+  - {origen: "MODIFIED", destino: modified, regla: decimal_con_signo, nulo_permitido: false}
+  - {origen: "DELETED", destino: deleted, regla: decimal_con_signo, nulo_permitido: true}

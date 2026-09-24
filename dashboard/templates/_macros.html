@@ -1,0 +1,24 @@
+{% macro badge(estado, ok="Aprobado", fail="Fallido") -%}
+  {%- if estado == "ok" -%}<span class="badge success">{{ ok }}</span>
+  {%- elif estado == "fail" -%}<span class="badge failed">{{ fail }}</span>
+  {%- elif estado == "error" -%}<span class="badge failed">Error</span>
+  {%- elif estado == "en_progreso" -%}<span class="badge running">En curso</span>
+  {%- else -%}<span class="badge idle">Sin ejecutar</span>{%- endif -%}
+{%- endmacro %}
+
+{% macro dot(estado) -%}
+  activity-dot{% if estado in ("fail", "error") %} fail{% elif estado == "en_progreso" %} run{% endif %}
+{%- endmacro %}
+
+{% macro flash(error, mensaje) -%}
+  {% if error %}<div class="notice bad" role="alert">{{ error }}</div>{% endif %}
+  {% if mensaje %}<div class="notice ok" role="status">{{ mensaje }}</div>{% endif %}
+{%- endmacro %}
+
+{% macro lista_pasos(lista, horizontal=False) -%}
+  <div class="steps{% if horizontal %} horizontal{% endif %}">
+    {% for p in lista %}<div class="step {{ p.estado }}">{{ p.nombre }}</div>{% endfor %}
+  </div>
+{%- endmacro %}
+
+{% macro modo(m) -%}{{ "Firebird (en vivo)" if m == "firebird" else "Instantánea" }}{%- endmacro %}

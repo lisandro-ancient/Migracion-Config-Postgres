@@ -1,0 +1,27 @@
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+.env
+# Rutas propias de cada máquina: copiar .mcp.json.example a .mcp.json y ajustar.
+.mcp.json
+.vscode/
+.idea/
+.DS_Store
+runs/
+runs.db
+allure-results/
+allure-report/
+evidencia/
+# Nunca versionar la base misma
+*.fdb
+*.FDB
+dist/
+build/
+htmlcov/
+.coverage
+.coverage.*
+junit*.xml
+.mypy_cache/
+.ruff_cache/

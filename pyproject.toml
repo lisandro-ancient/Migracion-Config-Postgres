@@ -1,0 +1,79 @@
+[project]
+name = "firebird-config-microsip"
+version = "1.0.0"
+description = "Extracción y validación de solo lectura de la base CONFIG de Firebird MicroSIP, asistida por agente (MCP)."
+readme = "README.md"
+requires-python = ">=3.11"  # firebird-driver 2.x exige 3.11+
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+# Red de seguridad para quien no corra "pip install -e .". Un subproceso NUEVO
+# (como el servidor MCP que lanza tests/test_mcp_server.py) no hereda esta
+# opción — por eso esa prueba además fija PYTHONPATH a mano.
+pythonpath = ["src", "."]
+testpaths = ["tests"]
+addopts = "--alluredir=allure-results --clean-alluredir"
+# Cada módulo pertenece a una suite (tests/conftest.py::SUITE_POR_MODULO).
+markers = [
+    "unit: funciones puras y reglas, sin bases de datos",
+    "integration: piezas reales combinadas (Firebird, PostgreSQL, MCP, dashboard)",
+    "differential: comparan origen y destino fila por fila",
+    "e2e: el sistema completo desde afuera (servidor HTTP y CLI reales)",
+]
+
+[tool.ruff]
+line-length = 130
+target-version = "py311"
+extend-exclude = ["model-cache", "runs", "allure-report"]
+
+[tool.ruff.lint]
+# E/W estilo · F errores reales · I imports · B trampas comunes · UP sintaxis moderna
+# SIM simplificaciones · S seguridad (bandit) · RUF reglas propias de ruff
+select = ["E", "W", "F", "I", "B", "UP", "SIM", "S", "RUF"]
+ignore = [
+    "E501",    # la longitud la gobierna el formateador
+    "S101",    # assert es la forma de escribir pruebas
+    "S603",    # subprocess sin shell=True es el uso previsto (CLI, pytest, uvicorn)
+    "S608",    # SQL armado con identificadores ya validados por identificador_seguro()/manifiesto
+    "RUF001", "RUF002", "RUF003",  # texto en español con caracteres ambiguos a propósito (–, ×, ·)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S105", "S106", "S108", "S311"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["config_microsip", "dashboard"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.mypy]
+python_version = "3.11"
+files = ["src/config_microsip"]
+ignore_missing_imports = true
+warn_unused_ignores = true
+check_untyped_defs = true
+
+[tool.coverage.run]
+source = ["config_microsip", "dashboard"]
+omit = ["*/mcp_server.py"]  # se ejecuta en subproceso (test_mcp_server) y no se mide
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+
+[tool.bandit]
+# Excepciones revisadas, con su justificación (mismas que en [tool.ruff.lint]):
+# B608: el SQL interpola solo identificadores ya validados — identificador_seguro() para
+#       Firebird (regex ^[A-Z][A-Z0-9_$]*$, probado en tests/test_config.py) y _q()/manifiesto
+#       para PostgreSQL y el ledger —; los valores siempre van como parámetros.
+# B404/B603: subprocess se usa a propósito (pytest, uvicorn) con listas de argumentos, sin shell.
+# B314/B405: el único XML que se parsea es el reporte JUnit que acaba de generar nuestro pytest.
+skips = ["B608", "B404", "B603", "B314", "B405"]
+exclude_dirs = ["tests", ".venv"]

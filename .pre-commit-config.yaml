@@ -1,0 +1,43 @@
+# Mismas revisiones rápidas que la etapa "Calidad" de la CI, antes de cada commit.
+#   pip install -r requirements-dev.txt && pre-commit install
+repos:
+  - repo: local
+    hooks:
+      - id: ruff
+        name: ruff (lint)
+        entry: ruff check --fix
+        language: system
+        types: [python]
+      - id: ruff-format
+        name: ruff (formato)
+        entry: ruff format
+        language: system
+        types: [python]
+      - id: mypy
+        name: mypy
+        entry: mypy
+        language: system
+        pass_filenames: false
+        files: ^src/
+      - id: version
+        name: versión coherente
+        entry: python ci/version.py actual
+        language: system
+        pass_filenames: false
+        files: ^(pyproject\.toml|src/config_microsip/__init__\.py|CHANGELOG\.md)$
+      - id: manifiestos
+        name: manifiestos, DDL y plantillas
+        entry: python ci/validar_manifiestos.py
+        language: system
+        pass_filenames: false
+        files: ^(fuentes|fixtures|dashboard/templates|src)/
+      - id: actionlint
+        name: actionlint
+        entry: actionlint
+        language: system
+        pass_filenames: false
+        files: ^\.github/workflows/
+      - id: sin-archivos-prohibidos
+        name: sin .env / .fdb / runs.db
+        entry: sh -c 'for f in "$@"; do case "$f" in *.env|.env|*.fdb|*.FDB|runs.db|runs/*) echo "No versionar: $f"; exit 1;; esac; done' --
+        language: system

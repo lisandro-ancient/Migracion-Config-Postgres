@@ -1,0 +1,16 @@
+# Configuración de gitleaks (etapa "Seguridad" de la CI): reglas por omisión +
+# excepciones para credenciales de desarrollo que son públicas a propósito.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Credenciales de contenedores desechables y datos inventados de la réplica de CI"
+regexes = [
+  '''migracion_dev_password''',   # PostgreSQL local de docker-compose.yml
+  '''masterkey''',                # Firebird desechable de los jobs de CI
+  '''token-falso''',              # ci/datos_replica.sql
+  '''no-es-real''',               # ci/datos_replica.sql
+]
+paths = [
+  '''(^|/)\.env$''',              # nunca se versiona (ver .gitignore); por si alguien lo escanea en local
+]

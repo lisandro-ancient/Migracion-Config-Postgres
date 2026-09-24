@@ -1,0 +1,25 @@
+# BORRADOR generado desde el esquema real de DERECHOS_USUARIOS (config_microsip.generador).
+# Revisar cada regla antes de pasar a 'estado: vigente'. Nada aquí es una decisión de negocio verificada.
+# Filas en origen al generar: 0
+#
+# - FK real en origen: USUARIO_ID -> USUARIOS.USUARIO_ID (validada vía catálogo ref_usuarios)
+
+fuente: config
+estado: borrador
+tabla_origen: DERECHOS_USUARIOS
+tabla_destino: derechos_usuarios
+llave_primaria: [usuario_id, clave_objeto]
+fixture: fixtures/config/derechos_usuarios_raw_snapshot.json
+depende_de: [ref_usuarios]
+catalogos:
+  - nombre: ref_usuarios
+    tipo: tabla
+    tabla_origen: USUARIOS
+    fixture: fixtures/config/ref_usuarios_raw_snapshot.json
+    columnas: [usuario_id]
+    mapeo_columnas: [["USUARIO_ID", usuario_id]]
+    al_borrar: cascade
+
+campos:
+  - {origen: "USUARIO_ID", destino: usuario_id, regla: entero, nulo_permitido: false, catalogo_fk: ref_usuarios}
+  - {origen: "CLAVE_OBJETO", destino: clave_objeto, regla: texto, nulo_permitido: false}

@@ -1,0 +1,34 @@
+# BORRADOR generado desde el esquema real de EMPRESAS_CUENTAS_WHATSAPP (config_microsip.generador).
+# Revisar cada regla antes de pasar a 'estado: vigente'. Nada aquí es una decisión de negocio verificada.
+# Filas en origen al generar: 0
+#
+# - FK real en origen: EMPRESA_ID -> EMPRESAS.EMPRESA_ID (validada vía catálogo ref_empresas)
+# - FK real en origen: CUENTA_WHATSAPP_ID -> CUENTAS_WHATSAPP.CUENTA_WHATSAPP_ID (validada vía catálogo ref_cuentas_whatsapp)
+
+fuente: config
+estado: borrador
+tabla_origen: EMPRESAS_CUENTAS_WHATSAPP
+tabla_destino: empresas_cuentas_whatsapp
+llave_primaria: empresa_id
+fixture: fixtures/config/empresas_cuentas_whatsapp_raw_snapshot.json
+depende_de: [ref_empresas, ref_cuentas_whatsapp]
+catalogos:
+  - nombre: ref_empresas
+    tipo: tabla
+    tabla_origen: EMPRESAS
+    fixture: fixtures/config/ref_empresas_raw_snapshot.json
+    columnas: [empresa_id]
+    mapeo_columnas: [["EMPRESA_ID", empresa_id]]
+    al_borrar: cascade
+  - nombre: ref_cuentas_whatsapp
+    tipo: tabla
+    tabla_origen: CUENTAS_WHATSAPP
+    fixture: fixtures/config/ref_cuentas_whatsapp_raw_snapshot.json
+    columnas: [cuenta_whatsapp_id]
+    mapeo_columnas: [["CUENTA_WHATSAPP_ID", cuenta_whatsapp_id]]
+    al_borrar: cascade
+
+campos:
+  - {origen: "EMPRESA_ID", destino: empresa_id, regla: entero, nulo_permitido: false, catalogo_fk: ref_empresas}
+  - {origen: "CUENTA_WHATSAPP_ID", destino: cuenta_whatsapp_id, regla: entero, nulo_permitido: false, catalogo_fk: ref_cuentas_whatsapp}
+  - {origen: "ACTIVO", destino: activo, regla: booleano, nulo_permitido: false}

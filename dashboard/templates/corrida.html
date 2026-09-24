@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge, modo %}
+{% block titulo %}Corrida {{ corrida.run_id }}{% endblock %}
+{% block migas %}Corrida {{ corrida.run_id }}{% endblock %}
+{% block contenido %}
+<p>{% if corrida.job_id %}<a href="/jobs/{{ corrida.job_id }}">← Trabajo #{{ corrida.job_id }}</a>{% else %}<a href="/tables">← Tablas</a>{% endif %}</p>
+<div class="page-head"><div><h2>{{ "Migración" if corrida.tipo == "migracion" else "Validación" }} · {{ corrida.fuente }}.{{ corrida.tabla }}</h2>
+  <p>Corrida <code>{{ corrida.run_id }}</code> · {{ modo(corrida.modo) }} · {{ corrida.iniciado_en | fecha_hora }}</p></div>{{ badge(corrida.estado) }}</div>
+{% if corrida.estado == "error" %}<div class="notice bad"><b>La corrida terminó con error.</b> {{ detalle_error.error }}</div>{% endif %}
+{% if comparison and comparison.migracion_postgres %}{% set mp = comparison.migracion_postgres %}
+  <div class="notice {{ 'ok' if mp.cargado else 'bad' }}"><b>PostgreSQL:</b>
+  {% if mp.cargado %}cargado en <code>{{ mp.destino }}</code>: {{ mp.filas_upsert }} filas insertadas o actualizadas, {{ mp.filas_eliminadas }} eliminadas porque ya no existen en el origen.{% else %}no se cargó. {{ mp.motivo }}{% endif %}</div>
+{% endif %}
+{% if comparison %}
+<div class="notice {{ 'ok' if comparison.ok_general else 'bad' }}"><b>{{ "Todas las verificaciones pasaron" if comparison.ok_general else "Algunas verificaciones fallaron" }}</b>: {{ comparison.verificaciones | length }} verificaciones{% if not comparison.golden_disponible %} · esta tabla no tiene golden dataset{% endif %}.
+  {% for f in fallas %}<br>✕ <b>{{ f.verificacion }}</b>: {{ f }}{% endfor %}</div>
+{% endif %}
+<div class="grid kpis four">
+  <div class="card kpi"><div class="kpi-head"><span>Filas leídas</span></div><div class="kpi-value">{{ corrida.filas_entrada | miles }}</div></div>
+  <div class="card kpi"><div class="kpi-head"><span>{{ "Cargadas" if corrida.tipo == "migracion" else "Aceptadas" }}</span></div><div class="kpi-value">{{ corrida.filas_salida | miles }}</div></div>
+  <div class="card kpi"><div class="kpi-head"><span>Rechazadas</span></div><div class="kpi-value {{ 'warn' if corrida.filas_falla }}">{{ corrida.filas_falla | miles }}</div></div>
+  <div class="card kpi"><div class="kpi-head"><span>Duración</span></div><div class="kpi-value">{{ ((corrida.terminado_en - corrida.iniciado_en) | duracion) if corrida.terminado_en else "…" }}</div></div>
+</div>
+{% if comparison %}
+<div class="card table-card"><div class="table-wrap"><table><thead><tr><th>Verificación</th><th>Resultado</th><th>Detalle</th></tr></thead><tbody>
+  {% for v in comparison.verificaciones %}<tr><td>{{ v.verificacion }}</td><td>{{ badge("ok" if v.ok else "fail") }}</td>
+    <td class="wrap"><code>{{ v | dictsort | rejectattr(0, "in", ["verificacion", "ok"]) | map("join", "=") | join(" · ") }}</code></td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endif %}
+<div class="grid halves">
+  <div class="card panel"><div class="panel-title"><h3>Entrada: Firebird {{ queries.tabla_origen if queries else "" }}</h3></div>
+    {% if queries %}<pre class="block">{{ queries.extraccion_sql }}</pre><p class="muted" style="font-size:10px">{{ queries.transaccion }}</p>{% endif %}
+    {% if entrada_muestra %}<div class="table-wrap"><table><thead><tr>{% for k in entrada_muestra[0].keys() %}<th>{{ k }}</th>{% endfor %}</tr></thead>
+      <tbody>{% for fila in entrada_muestra %}<tr>{% for v in fila.values() %}<td>{{ v if v is not none else "" }}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div>{% endif %}
+  </div>
+  <div class="card panel"><div class="panel-title"><h3>Salida: candidato normalizado</h3></div>
+    {% if queries and queries.ddl_postgres %}<details><summary>DDL aplicado en PostgreSQL</summary><pre class="block">{{ queries.ddl_postgres }}</pre></details>{% endif %}
+    {% if salida_muestra %}<div class="table-wrap"><table><thead><tr>{% for c in salida_muestra.encabezado %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>{% for fila in salida_muestra.filas %}<tr>{% for v in fila %}<td>{{ v }}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div>
+    {% else %}<div class="empty">Sin filas.</div>{% endif %}
+  </div>
+</div>
+{% if comparison and comparison.filas_rechazadas_en_transformacion %}
+<div class="card panel" style="margin-top:14px"><div class="panel-title"><h3>Filas rechazadas</h3><span class="badge failed">{{ comparison.filas_rechazadas_en_transformacion | length }}</span></div>
+  {% for r in comparison.filas_rechazadas_en_transformacion[:50] %}<div class="error-row"><b>{{ r.llave }}</b><span class="err" style="grid-column:span 3">{{ r.motivo }}</span></div>{% endfor %}</div>
+{% endif %}
+{% if report_md %}<div class="card panel" style="margin-top:14px"><div class="panel-title"><h3>report.md</h3></div><pre class="block">{{ report_md }}</pre></div>{% endif %}
+{% if archivos_evidencia %}<div class="card panel" style="margin-top:14px"><div class="panel-title"><h3>Archivos de evidencia</h3></div>{% for a in archivos_evidencia %}<div><code>{{ run_dir }}/evidence/{{ a }}</code></div>{% endfor %}</div>{% endif %}
+{% endblock %}

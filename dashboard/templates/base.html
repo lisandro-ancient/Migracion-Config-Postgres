@@ -1,0 +1,69 @@
+{% from "_macros.html" import badge, flash %}
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}Centro de control de migración{% endblock %} · Firebird → PostgreSQL</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/htmx/1.9.12/htmx.min.js"></script>
+  <link rel="stylesheet" href="/static/estilo.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <a class="brand" href="/"><div class="db-icon"></div><span>Firebird → PostgreSQL</span></a>
+    <nav class="nav" aria-label="Principal">
+      {% set items = [
+        ("dashboard", "/", "⌂", "Panel"),
+        ("jobs", "/jobs", "▣", "Trabajos de migración"),
+        ("data", "/data", "⇄", "Resumen de datos"),
+        ("tests", "/tests", "✓", "Pruebas y validación"),
+        ("logs", "/logs", "≡", "Registros y errores"),
+        ("agent", "/agent", "✦", "Agente IA"),
+        ("settings", "/settings", "⚙", "Configuración"),
+      ] %}
+      {% for clave, url, ico, nombre in items %}
+        <a href="{{ url }}" class="{{ 'active' if vista == clave }}" {% if vista == clave %}aria-current="page"{% endif %}><span class="ico">{{ ico }}</span><span>{{ nombre }}</span></a>
+      {% endfor %}
+      <div class="sep"></div>
+      <a href="/tables" class="{{ 'active' if vista == 'tables' }}"><span class="ico">▤</span><span>Tablas</span></a>
+      <a href="/esquema" class="{{ 'active' if vista == 'schema' }}"><span class="ico">◫</span><span>Esquema en vivo</span></a>
+    </nav>
+    <div class="system" id="system-status">
+      {% if sistema.online %}<div class="online">● Sistema en línea</div>{% else %}<div class="offline">● Requiere atención</div>{% endif %}
+      Firebird: <span class="{{ 'ok' if sistema.firebird.ok else 'ko' }}">{{ "conectado" if sistema.firebird.ok else "no disponible" }}</span>
+      {% if sistema.firebird.ok and not sistema.firebird.es_base_config %}<span class="ko">(no es CONFIG)</span>{% endif %}<br>
+      PostgreSQL: <span class="{{ 'ok' if sistema.postgres.ok else 'ko' }}">{{ "conectado" if sistema.postgres.ok else "no disponible" }}</span><br>
+      Proceso: {{ "ocupado" if ocupado else "libre" }}<br>
+      Revisado: {{ sistema.comprobado_en | hora }}<br>
+      Versión {{ version }}
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="title-area">
+        <h1>Centro de control de migración</h1>
+        <div class="breadcrumb">Firebird CONFIG → PostgreSQL · {% block migas %}Panel{% endblock %}</div>
+      </div>
+      <div class="top-actions">
+        <a class="icon-btn" href="/logs" title="Errores">🔔 <span class="{{ 'danger' if errores_nav else 'muted' }}">{{ errores_nav }}</span></a>
+        <a class="refresh" href="" id="refresh">↻ Actualizar</a>
+        <div class="user">{{ usuario }}</div>
+      </div>
+    </header>
+    <div class="content">
+      {% block contenido %}{% endblock %}
+    </div>
+  </main>
+</div>
+<script>
+  function actualizarReloj(){
+    const el = document.getElementById('clock');
+    if (el) el.textContent = new Date().toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false});
+  }
+  setInterval(actualizarReloj, 1000); actualizarReloj();
+  document.getElementById('refresh').addEventListener('click', function(){ this.textContent = '↻ Actualizando...'; });
+</script>
+</body>
+</html>

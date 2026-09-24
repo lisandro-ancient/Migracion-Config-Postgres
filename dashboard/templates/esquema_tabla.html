@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block titulo %}{{ tabla|upper }} · Esquema en vivo{% endblock %}
+{% block migas %}Esquema en vivo · {{ tabla|upper }}{% endblock %}
+{% block contenido %}
+<p><a href="/esquema">← Esquema en vivo</a></p>
+<div class="page-head"><div><h2>{{ tabla|upper }}</h2>{% if d %}<p>{{ d.filas | miles }} filas · llave primaria: {{ d.llave_primaria | join(", ") or "(ninguna)" }}</p>{% endif %}</div></div>
+{% if error %}<div class="notice bad">{{ error }}</div>{% endif %}
+{% if d %}
+<div class="notice">Genera un manifiesto borrador: <code>python -m config_microsip.cli generar-manifiesto --tabla {{ d.tabla }}</code></div>
+<div class="card table-card"><div class="table-wrap"><table><thead><tr><th>#</th><th>Columna</th><th>Tipo</th><th>Admite nulos</th><th>Juego de caracteres</th><th>PK</th></tr></thead>
+  <tbody>{% for c in d.columnas %}<tr><td>{{ c.posicion }}</td><td>{{ c.nombre }}</td><td>{{ c.tipo }}</td><td>{{ "sí" if c.nulo_permitido else "no" }}</td><td>{{ c.charset or "" }}</td><td>{{ "●" if c.es_llave_primaria else "" }}</td></tr>{% endfor %}</tbody></table></div></div>
+{% if d.llaves_foraneas %}
+<div class="card panel" style="margin-top:14px"><div class="panel-title"><h3>Llaves foráneas</h3></div>
+  {% for fk in d.llaves_foraneas %}<div class="activity-row"><code>{{ fk.columna }}</code> → {{ fk.tabla_referida }}.{{ fk.columna_referida }} <span class="badge {{ 'running' if fk.al_borrar == 'cascade' else 'idle' }}">al borrar: {{ {"cascade": "cascada", "restrict": "restringir", "set_null": "poner nulo", "set_default": "valor por omisión"}.get(fk.al_borrar, fk.al_borrar) }}</span></div>{% endfor %}</div>
+{% endif %}
+{% endif %}
+{% endblock %}

@@ -1,0 +1,40 @@
+# BORRADOR generado desde el esquema real de USUARIOS (config_microsip.generador).
+# Revisar cada regla antes de pasar a 'estado: vigente'. Nada aquí es una decisión de negocio verificada.
+# Filas en origen al generar: 0
+#
+# - TIPO: CHAR(1) con valores observados [] — ¿catálogo derivado?
+# - ACCESO_EMPRESAS: CHAR(1) con valores observados [] — ¿catálogo derivado?
+# - USAR_ROL: CHAR(1) con valores observados [] — ¿catálogo derivado?
+# - ESTATUS: CHAR(1) con valores observados [] — ¿catálogo derivado?
+# - AUTORIZADOR: CHAR(1) con valores observados [] — ¿catálogo derivado?
+# - FK real en origen: ROL_ID -> USUARIOS.USUARIO_ID (validada vía catálogo ref_usuarios)
+
+fuente: config
+estado: borrador
+tabla_origen: USUARIOS
+tabla_destino: usuarios
+llave_primaria: usuario_id
+fixture: fixtures/config/usuarios_raw_snapshot.json
+depende_de: [ref_usuarios]
+catalogos:
+  - nombre: ref_usuarios
+    tipo: tabla
+    tabla_origen: USUARIOS
+    fixture: fixtures/config/ref_usuarios_raw_snapshot.json
+    columnas: [usuario_id]
+    mapeo_columnas: [["USUARIO_ID", usuario_id]]
+    al_borrar: restrict
+
+campos:
+  - {origen: "USUARIO_ID", destino: usuario_id, regla: entero, nulo_permitido: false}
+  - {origen: "NOMBRE", destino: nombre, regla: texto, nulo_permitido: false}
+  - {origen: "TIPO", destino: tipo, regla: texto, nulo_permitido: true}
+  - {origen: "ACCESO_EMPRESAS", destino: acceso_empresas, regla: texto, nulo_permitido: true}
+  - {origen: "USAR_ROL", destino: usar_rol, regla: texto, nulo_permitido: true}
+  - {origen: "ROL_ID", destino: rol_id, regla: entero, nulo_permitido: true, catalogo_fk: ref_usuarios}
+  - {origen: "ESTATUS", destino: estatus, regla: texto, nulo_permitido: false}
+  - {origen: "AUTORIZADOR", destino: autorizador, regla: texto, nulo_permitido: false}
+  - {origen: "USUARIO_CREADOR", destino: usuario_creador, regla: texto, nulo_permitido: true}
+  - {origen: "FECHA_HORA_CREACION", destino: fecha_hora_creacion, regla: timestamp, nulo_permitido: true}
+  - {origen: "USUARIO_ULT_MODIF", destino: usuario_ult_modif, regla: texto, nulo_permitido: true}
+  - {origen: "FECHA_HORA_ULT_MODIF", destino: fecha_hora_ult_modif, regla: timestamp, nulo_permitido: true}

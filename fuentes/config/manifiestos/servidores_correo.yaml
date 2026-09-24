@@ -1,0 +1,25 @@
+# BORRADOR generado desde el esquema real de SERVIDORES_CORREO (config_microsip.generador).
+# Revisar cada regla antes de pasar a 'estado: vigente'. Nada aquí es una decisión de negocio verificada.
+# Filas en origen al generar: 0
+#
+# - PROVEEDOR_AUTENTICACION: CHAR(1) con valores observados [] — ¿catálogo derivado?
+
+fuente: config
+estado: borrador
+tabla_origen: SERVIDORES_CORREO
+tabla_destino: servidores_correo
+llave_primaria: servidor_correo_id
+fixture: fixtures/config/servidores_correo_raw_snapshot.json
+depende_de: []
+catalogos: []
+
+campos:
+  - {origen: "SERVIDOR_CORREO_ID", destino: servidor_correo_id, regla: entero, nulo_permitido: false}
+  - {origen: "NOMBRE", destino: nombre, regla: texto, nulo_permitido: false}
+  - {origen: "PROVEEDOR_AUTENTICACION", destino: proveedor_autenticacion, regla: texto, nulo_permitido: false}
+  - {origen: "SERVIDOR", destino: servidor, regla: texto, nulo_permitido: false}
+  - {origen: "PUERTO", destino: puerto, regla: entero, nulo_permitido: false}
+  - {origen: "USUARIO_CREADOR", destino: usuario_creador, regla: texto, nulo_permitido: true}
+  - {origen: "FECHA_HORA_CREACION", destino: fecha_hora_creacion, regla: timestamp, nulo_permitido: true}
+  - {origen: "USUARIO_ULT_MODIF", destino: usuario_ult_modif, regla: texto, nulo_permitido: true}
+  - {origen: "FECHA_HORA_ULT_MODIF", destino: fecha_hora_ult_modif, regla: timestamp, nulo_permitido: true}

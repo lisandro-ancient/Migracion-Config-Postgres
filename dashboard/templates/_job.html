@@ -1,0 +1,39 @@
+{% from "_macros.html" import badge, lista_pasos, modo %}
+<div id="job-live" {% if trabajo.estado == "en_progreso" %}hx-get="/fragmento/jobs/{{ trabajo.job_id }}" hx-trigger="every 2s" hx-swap="outerHTML"{% endif %} data-estado="{{ trabajo.estado }}">
+<div class="page-head"><div><h2>Trabajo #{{ trabajo.job_id }}</h2><p>{{ trabajo.fuente }} · {{ modo(trabajo.modo) }} → PostgreSQL</p></div>{{ badge(trabajo.estado, ok="Completado", fail="Completado con fallas") }}</div>
+{% if detalle.error %}<div class="notice bad">{{ detalle.error }}</div>{% endif %}
+<div class="grid kpis four">
+  <div class="card kpi"><div class="kpi-head"><span>Tablas</span><span class="kpi-icon">▤</span></div><div class="kpi-value">{{ procesadas }}/{{ trabajo.tablas_total }}</div><div class="kpi-sub">{{ trabajo.tablas_ok }} aprobadas · <span class="{{ 'danger' if trabajo.tablas_fail }}">{{ trabajo.tablas_fail }} fallidas</span></div></div>
+  <div class="card kpi"><div class="kpi-head"><span>Filas leídas / cargadas</span><span class="kpi-icon">◉</span></div><div class="kpi-value">{{ trabajo.filas_origen | miles }} / {{ trabajo.filas_migradas | miles }}</div><div class="kpi-sub">De Firebird / en PostgreSQL</div></div>
+  <div class="card kpi"><div class="kpi-head"><span>Duración</span><span class="kpi-icon">◷</span></div><div class="kpi-value">{{ ((trabajo.terminado_en or sistema.comprobado_en) - trabajo.iniciado_en) | duracion }}</div><div class="kpi-sub">Inicio {{ trabajo.iniciado_en | fecha_hora }}</div></div>
+  <div class="card kpi"><div class="kpi-head"><span>Diferencial</span><span class="kpi-icon">⇄</span></div>
+    {% if comparacion %}<div class="kpi-value {{ 'up' if comparacion.estado == 'ok' else 'danger' }}">{{ comparacion.coinciden | miles }} coinciden</div>
+      <div class="kpi-sub"><a href="/data?id={{ comparacion.comparacion_id }}">{{ comparacion.diferentes }} diferentes · {{ comparacion.faltantes }} faltantes · {{ comparacion.sobrantes }} sobrantes →</a></div>
+    {% else %}<div class="kpi-value muted">—</div><div class="kpi-sub">Se ejecuta después de la última tabla</div>{% endif %}</div>
+</div>
+<div class="grid two">
+  <div class="card panel"><div class="panel-title"><h3>Progreso</h3><span class="muted" style="font-size:11px">{{ trabajo.tabla_actual or "" }} {{ ("· " ~ trabajo.paso_actual) if trabajo.paso_actual else "" }}</span></div>
+    <div class="progress"><span style="width:{{ progreso_pct or 0 }}%"></span></div>
+    <div class="progress-label"><span>{{ procesadas }}/{{ trabajo.tablas_total }} tablas</span><b>{{ progreso_pct or 0 }}%</b></div>
+    {{ lista_pasos(pasos) }}
+  </div>
+  <div class="card panel"><div class="panel-title"><h3>Tablas procesadas en el tiempo</h3></div>
+    {% if grafica.vacio %}<div class="empty">Esperando la primera tabla…</div>{% else %}
+    <div class="chart"><div class="chart-grid"></div><div class="axis"><span>100%</span><span>75%</span><span>50%</span><span>25%</span><span>0%</span></div>
+      <svg class="svgchart" viewBox="0 0 600 180" preserveAspectRatio="none"><polyline points="{{ grafica.puntos }}" fill="none" stroke="#18a66a" stroke-width="3" vector-effect="non-scaling-stroke"/></svg>
+      <div class="xaxis">{% for e in grafica.etiquetas %}<span>{{ e }}</span>{% endfor %}</div></div>{% endif %}
+  </div>
+</div>
+<div class="card table-card"><div class="table-wrap"><table>
+  <thead><tr><th>#</th><th>Tabla</th><th>Estado</th><th class="num">Leídas</th><th class="num">Cargadas</th><th class="num">Rechazadas</th><th>Duración</th><th>Evidencia</th></tr></thead>
+  <tbody>
+  {% for c in corridas %}
+    <tr><td>{{ loop.index }}</td><td>{{ c.tabla }}</td><td>{{ badge(c.estado) }}</td><td class="num">{{ c.filas_entrada | miles }}</td><td class="num">{{ c.filas_salida | miles }}</td>
+      <td class="num {{ 'warn' if c.filas_falla }}">{{ c.filas_falla | miles }}</td>
+      <td>{{ ((c.terminado_en - c.iniciado_en) | duracion) if c.terminado_en else "…" }}</td><td><a class="btn" href="/corrida/{{ c.run_id }}">Abrir</a></td></tr>
+  {% else %}<tr><td colspan="8" class="empty">Todavía no se ha procesado ninguna tabla.</td></tr>{% endfor %}
+  {% for t in detalle.get("tablas", []) if t.error %}
+    <tr><td>—</td><td>{{ t.tabla }}</td><td><span class="badge failed">Error</span></td><td colspan="5" class="wrap danger">{{ t.error }}</td></tr>
+  {% endfor %}
+  </tbody></table></div></div>
+</div>

@@ -1,0 +1,416 @@
+# CI/CD de firebird-config-microsip.
+#
+# Etapas (cada una es un job; las flechas son dependencias):
+#
+#   calidad ─┬─ unitarias (3.11–3.13) ─┬─ integracion ──┐
+#   seguridad┘                         ├─ diferencial ──┼─ cobertura ─┐
+#                                      └─ e2e ──────────┘             ├─ publicar-imagen ─ release
+#                                         construccion ───────────────┘
+#
+# Integración, diferencial, e2e y construcción levantan un PostgreSQL 16 y un
+# Firebird 5 reales (servicios). En el Firebird se crea una RÉPLICA de CONFIG:
+# la estructura real de las 16 tablas y sus 11 llaves foráneas (ci/config_replica.sql)
+# con filas inventadas (ci/datos_replica.sql). Nunca se usa la CONFIG real ni se
+# escribe en ella.
+
+name: CI/CD
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  schedule:
+    - cron: "0 12 * * 1-5"  # lunes a viernes 06:00 (México): detecta dependencias que se rompen solas
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_PRINCIPAL: "3.12"
+  SKIP_ALLURE_REPORT: "1"
+  COBERTURA_MINIMA: "80"
+  # Bases de los servicios de los jobs que los declaran (integración, diferencial, e2e,
+  # construcción). En los demás jobs nada se conecta a ellas.
+  FIREBIRD_HOST: localhost
+  FIREBIRD_PORT: "3050"
+  FIREBIRD_DATABASE: /var/lib/firebird/data/config_ci.fdb
+  FIREBIRD_USER: SYSDBA
+  FIREBIRD_PASSWORD: masterkey  # contraseña del contenedor desechable del job, no de un servidor real
+  POSTGRES_HOST: localhost
+  POSTGRES_PORT: "5434"
+
+jobs:
+  # ─────────────────────────────── 1. Calidad ───────────────────────────────
+  calidad:
+    name: Calidad de código
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/preparar
+      - name: Lint (ruff)
+        run: ruff check src dashboard tests ci --output-format=github
+      - name: Formato (ruff format)
+        run: ruff format --check src dashboard tests ci
+      - name: Tipos (mypy)
+        run: mypy
+      - name: Versión coherente (pyproject.toml = __version__ = sección del CHANGELOG)
+        run: python ci/version.py actual
+      - name: Manifiestos, DDL y plantillas
+        run: python ci/validar_manifiestos.py
+      - name: Workflows de GitHub Actions (actionlint)
+        run: actionlint -color
+      - name: Archivos prohibidos en el repositorio
+        run: |
+          prohibidos=$(git ls-files | grep -E '(^|/)\.env$|\.fdb$|\.FDB$|(^|/)runs\.db$|^runs/' || true)
+          if [ -n "$prohibidos" ]; then
+            echo "::error::Estos archivos no deben versionarse:"; echo "$prohibidos"; exit 1
+          fi
+      - name: Cada módulo de prueba pertenece a una suite
+        run: pytest --collect-only -q -o addopts= > /dev/null
+
+  # ─────────────── 1b. CHANGELOG (solo en PRs; avisa, no bloquea) ───────────────
+  changelog:
+    name: CHANGELOG actualizado
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Un cambio visible debe anotarse en "Sin publicar"
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          cambios=$(git diff --name-only "$BASE"...HEAD)
+          visibles=$(echo "$cambios" | grep -E '^(src|dashboard|fuentes|Dockerfile|requirements\.txt)' || true)
+          if [ -n "$visibles" ] && ! echo "$cambios" | grep -qx 'CHANGELOG.md'; then
+            echo "::warning title=CHANGELOG::Este PR cambia código, manifiestos o dependencias y no agrega una línea en 'Sin publicar' de CHANGELOG.md (ver docs/VERSIONADO.md)."
+            echo "$visibles"
+          fi
+          if echo "$cambios" | grep -qE '^(pyproject\.toml|src/config_microsip/__init__\.py)$' && \
+             git diff "$BASE"...HEAD -- pyproject.toml src/config_microsip/__init__.py | grep -qE '^[+-](version|__version__)'; then
+            echo "::notice title=Versión::Este PR cambia el número de versión. Hazlo solo con 'python ci/version.py subir …' en un PR de release."
+          fi
+
+  # ─────────────────────────────── 2. Seguridad ─────────────────────────────
+  seguridad:
+    name: Seguridad
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # historial completo para buscar secretos en todos los commits
+      - uses: ./.github/actions/preparar
+      - name: Vulnerabilidades en dependencias (pip-audit)
+        run: pip-audit -r requirements.txt --progress-spinner off
+      - name: Análisis estático de seguridad (bandit)
+        run: bandit -r src dashboard -c pyproject.toml
+      - name: Secretos en el historial (gitleaks)
+        run: docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:latest git /repo --redact --no-banner --config /repo/.gitleaks.toml
+
+  # ─────────────────────────────── 3. Unitarias ─────────────────────────────
+  unitarias:
+    name: Unitarias (Python ${{ matrix.python }})
+    needs: [calidad]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12", "3.13"]
+    env:
+      COVERAGE_FILE: .coverage.unitarias
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/preparar
+        with:
+          python-version: ${{ matrix.python }}
+      - name: pytest -m unit
+        run: pytest -m unit --cov --cov-report= --junitxml=junit-unitarias.xml
+      - name: Resumen
+        if: always()
+        run: python ci/resumen_junit.py "Unitarias (Python ${{ matrix.python }})" junit-unitarias.xml
+      - uses: actions/upload-artifact@v4
+        if: matrix.python == env.PYTHON_PRINCIPAL
+        with:
+          name: cobertura-unitarias
+          path: .coverage.unitarias
+          include-hidden-files: true
+          retention-days: 7
+
+  # ───────────────── 4–6. Integración, diferencial y e2e (con bases reales) ─────────────────
+  integracion:
+    name: Integración (Firebird 5 + PostgreSQL 16)
+    needs: [unitarias]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services: &servicios
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: config_microsip
+          POSTGRES_USER: migracion
+          POSTGRES_PASSWORD: migracion_dev_password
+        ports: ["5434:5432"]
+        options: >-
+          --health-cmd "pg_isready -U migracion -d config_microsip"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+      firebird:
+        image: firebirdsql/firebird:5
+        env:
+          FIREBIRD_ROOT_PASSWORD: masterkey
+        ports: ["3050:3050"]
+    env:
+      COVERAGE_FILE: .coverage.integracion
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/preparar
+        with:
+          replica-firebird: "true"
+      - name: pytest -m integration
+        run: pytest -m integration --cov --cov-report= --junitxml=junit-integracion.xml -rs
+      - name: Resumen
+        if: always()
+        run: python ci/resumen_junit.py "Integración" junit-integracion.xml
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cobertura-integracion
+          path: .coverage.integracion
+          include-hidden-files: true
+          retention-days: 7
+
+  diferencial:
+    name: Diferencial (migración real Firebird → PostgreSQL)
+    needs: [unitarias]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services: *servicios
+    env:
+      COVERAGE_FILE: .coverage.diferencial
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/preparar
+        with:
+          replica-firebird: "true"
+      - name: Migrar la réplica de CONFIG a PostgreSQL (en vivo)
+        run: |
+          python -m config_microsip.cli generar-ddl --salida sql/config.sql
+          COLUMNS=160 python -m config_microsip.cli migrar-todo --firebird-real --permitir-borrador --reset-esquema
+      - name: pytest -m differential (origen ↔ PostgreSQL, fila por fila)
+        run: pytest -m differential --cov --cov-report= --junitxml=junit-diferencial.xml -rs
+      - name: Resumen
+        if: always()
+        run: python ci/resumen_junit.py "Diferencial" junit-diferencial.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: evidencia-migracion
+          path: |
+            runs/
+            sql/config.sql
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cobertura-diferencial
+          path: .coverage.diferencial
+          include-hidden-files: true
+          retention-days: 7
+
+  e2e:
+    name: Extremo a extremo (panel por HTTP + CLI)
+    needs: [unitarias]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services: *servicios
+    env:
+      COVERAGE_FILE: .coverage.e2e
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/preparar
+        with:
+          replica-firebird: "true"
+      - name: pytest -m e2e
+        run: pytest -m e2e --cov --cov-report= --junitxml=junit-e2e.xml -rs
+      - name: Resumen
+        if: always()
+        run: python ci/resumen_junit.py "Extremo a extremo" junit-e2e.xml
+      - name: Humo del panel contra la réplica (todas las vistas responden)
+        run: |
+          uvicorn dashboard.app:app --port 8020 --log-level warning &
+          for i in $(seq 1 30); do curl -sf -o /dev/null http://127.0.0.1:8020/ && break; sleep 1; done
+          for ruta in / /jobs /data /tests /logs /agent /settings /tables /esquema /esquema/EMPRESAS /logs/export.csv; do
+            codigo=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:8020$ruta")
+            echo "$codigo $ruta"; [ "$codigo" = "200" ] || exit 1
+          done
+          curl -s http://127.0.0.1:8020/settings | grep -q "sí, confirmado por el servidor"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cobertura-e2e
+          path: .coverage.e2e
+          include-hidden-files: true
+          retention-days: 7
+
+  # ─────────────────────────────── 7. Cobertura ─────────────────────────────
+  cobertura:
+    name: Cobertura combinada (mínimo 80%)
+    needs: [unitarias, integracion, diferencial, e2e]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/preparar
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: cobertura-*
+          merge-multiple: true
+      - name: Combinar y exigir el mínimo
+        run: |
+          coverage combine .coverage.*
+          coverage report --format=markdown >> "$GITHUB_STEP_SUMMARY"
+          coverage html -d htmlcov
+          coverage report --fail-under="$COBERTURA_MINIMA"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: reporte-cobertura
+          path: htmlcov/
+          retention-days: 14
+
+  # ─────────────────────────────── 8. Construcción ──────────────────────────
+  construccion:
+    name: Construcción (paquete + imagen Docker)
+    needs: [calidad, seguridad]
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services: *servicios
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/preparar
+        with:
+          replica-firebird: "true"
+      - name: Versión coherente (solo en etiquetas)
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: python ci/version.py verificar-etiqueta "$GITHUB_REF_NAME"
+      - name: Paquete Python (sdist + wheel)
+        run: |
+          python -m build
+          twine check --strict dist/*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paquete
+          path: dist/
+          retention-days: 14
+      - uses: docker/setup-buildx-action@v3
+      - name: Construir imagen
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: config-microsip:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Humo de la imagen (Firebird y PostgreSQL conectados desde el contenedor)
+        run: |
+          docker run -d --name panel --network host \
+            -e FIREBIRD_HOST -e FIREBIRD_PORT -e FIREBIRD_DATABASE -e FIREBIRD_USER -e FIREBIRD_PASSWORD \
+            -e POSTGRES_HOST -e POSTGRES_PORT config-microsip:ci
+          for i in $(seq 1 30); do curl -sf -o /dev/null http://127.0.0.1:8020/ && break; sleep 1; done
+          docker exec panel python -m config_microsip.cli verificar-conexion
+          docker exec panel python -m config_microsip.cli verificar-postgres
+          [ "$(curl -s http://127.0.0.1:8020/settings | grep -c 'Conectado')" -ge 2 ]
+          docker logs panel
+      - name: Vulnerabilidades de la imagen (Trivy)
+        run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image \
+            --exit-code 1 --severity CRITICAL,HIGH --ignore-unfixed --no-progress config-microsip:ci
+
+  # ─────────────────────────────── 9. Publicación (CD) ──────────────────────
+  publicar-imagen:
+    name: Publicar imagen en GHCR
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    needs: [construccion, cobertura, seguridad]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Nombre de la imagen (GHCR exige minúsculas)
+        run: echo "IMAGEN=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+      - name: ¿Esta etiqueta es la línea principal? (solo entonces se mueve "latest")
+        id: linea
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]] && git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "principal=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "principal=false" >> "$GITHUB_OUTPUT"   # corrección sobre una versión anterior (rama release/*)
+          fi
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGEN }}
+          tags: |
+            type=sha,format=short
+            type=raw,value=main,enable=${{ github.ref == 'refs/heads/main' }}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable=${{ steps.linea.outputs.principal == 'true' }}
+          flavor: |
+            latest=false
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          provenance: true
+          sbom: true
+
+  release:
+    name: Release en GitHub
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: [publicar-imagen]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_PRINCIPAL }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: paquete
+          path: dist/
+      - name: Crear la release con las notas del CHANGELOG
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python ci/version.py notas "$GITHUB_REF_NAME" > notas.md
+          echo "" >> notas.md
+          echo "Imagen: \`ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_REF_NAME#v}\`" >> notas.md
+          # Una corrección sobre una versión anterior (rama release/*) no se marca como "Latest".
+          ultima=true
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main || ultima=false
+          gh release create "$GITHUB_REF_NAME" dist/* --title "$GITHUB_REF_NAME" --notes-file notas.md --latest="$ultima"

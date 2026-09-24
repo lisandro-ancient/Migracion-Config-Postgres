@@ -1,0 +1,31 @@
+# BORRADOR generado desde el esquema real de EVENTOS (config_microsip.generador).
+# Revisar cada regla antes de pasar a 'estado: vigente'. Nada aquí es una decisión de negocio verificada.
+# Filas en origen al generar: 0
+#
+# - PERIODICIDAD: CHAR(1) con valores observados [] — ¿catálogo derivado?
+
+fuente: config
+estado: borrador
+tabla_origen: EVENTOS
+tabla_destino: eventos
+llave_primaria: evento_id
+fixture: fixtures/config/eventos_raw_snapshot.json
+depende_de: []
+catalogos: []
+
+campos:
+  - {origen: "EVENTO_ID", destino: evento_id, regla: entero, nulo_permitido: false}
+  - {origen: "CANDADO_ID", destino: candado_id, regla: texto, nulo_permitido: true}
+  - {origen: "CLAVE_EVENTO", destino: clave_evento, regla: texto, nulo_permitido: false}
+  - {origen: "FECHA", destino: fecha, regla: fecha, nulo_permitido: false}
+  - {origen: "HORA", destino: hora, regla: hora, nulo_permitido: false}
+  - {origen: "UUID", destino: uuid, regla: texto, nulo_permitido: false}
+  - {origen: "LLAVE_PRIMARIA", destino: llave_primaria, regla: texto, nulo_permitido: false}
+  - {origen: "ATRIBUTOS_ADICIONALES", destino: atributos_adicionales, regla: texto, nulo_permitido: true}
+  - {origen: "SINCRONIZADO", destino: sincronizado, regla: booleano, nulo_permitido: true}
+  - {origen: "DEPURAR", destino: depurar, regla: booleano, nulo_permitido: true}
+  - {origen: "DURACION_MINUTOS", destino: duracion_minutos, regla: decimal_con_signo, nulo_permitido: false}
+  - {origen: "NUM_INSTANCIAS", destino: num_instancias, regla: entero, nulo_permitido: true}
+  - {origen: "PERIODICIDAD", destino: periodicidad, regla: texto, nulo_permitido: false}
+  - {origen: "FIN_PERIODO", destino: fin_periodo, regla: fecha, nulo_permitido: true}
+  - {origen: "SINCRONIZAR_DIARIO", destino: sincronizar_diario, regla: booleano, nulo_permitido: true}

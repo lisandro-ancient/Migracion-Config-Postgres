@@ -1,0 +1,43 @@
+name: Preparar entorno
+description: Python + cliente de Firebird (libfbclient2) + dependencias del proyecto, con caché de pip.
+inputs:
+  python-version:
+    description: Versión de Python
+    default: "3.12"
+  replica-firebird:
+    description: "true = crear la réplica de CONFIG en el servicio Firebird del job"
+    default: "false"
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+        cache: pip
+        cache-dependency-path: |
+          requirements.txt
+          requirements-dev.txt
+
+    - name: Cliente de Firebird (libfbclient2)
+      shell: bash
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y -qq --no-install-recommends libfbclient2
+
+    - name: Dependencias
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements-dev.txt
+        pip install -e . --no-deps
+
+    - name: Esperar a Firebird y crear la réplica de CONFIG
+      if: inputs.replica-firebird == 'true'
+      shell: bash
+      run: |
+        for i in $(seq 1 30); do
+          python -c "import socket; socket.create_connection(('localhost', 3050), 2)" 2>/dev/null && break
+          sleep 2
+        done
+        python ci/crear_replica.py
+        python -m config_microsip.cli verificar-conexion

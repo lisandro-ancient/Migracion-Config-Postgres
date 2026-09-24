@@ -1,0 +1,22 @@
+{
+  "_meta": {
+    "fuente": "config",
+    "tabla_origen": "EMPRESAS_CUENTAS_WHATSAPP",
+    "columnas": [
+      "EMPRESA_ID",
+      "CUENTA_WHATSAPP_ID",
+      "ACTIVO"
+    ],
+    "conteo_origen": 0,
+    "capturado_en": "2026-09-23T21:50:27+00:00",
+    "conexion": {
+      "modo": "embebido",
+      "dsn": "CONFIG.FDB",
+      "usuario": "SYSDBA",
+      "charset_conexion": "NONE",
+      "codificacion_python": "iso8859_1"
+    },
+    "nota": "Capturado en una transacción de solo lectura (READ COMMITTED, READ ONLY) con conteo y filas en la misma transacción."
+  },
+  "filas": []
+}

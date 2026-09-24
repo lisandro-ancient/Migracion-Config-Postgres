@@ -1,0 +1,19 @@
+# BORRADOR generado desde el esquema real de RB_FOLDER (config_microsip.generador).
+# Revisar cada regla antes de pasar a 'estado: vigente'. Nada aquí es una decisión de negocio verificada.
+# Filas en origen al generar: 0
+#
+# (sin observaciones)
+
+fuente: config
+estado: borrador
+tabla_origen: RB_FOLDER
+tabla_destino: rb_folder
+llave_primaria: [name, parent_id]
+fixture: fixtures/config/rb_folder_raw_snapshot.json
+depende_de: []
+catalogos: []
+
+campos:
+  - {origen: "FOLDER_ID", destino: folder_id, regla: entero, nulo_permitido: true}
+  - {origen: "NAME", destino: name, regla: texto, nulo_permitido: false}
+  - {origen: "PARENT_ID", destino: parent_id, regla: entero, nulo_permitido: false}

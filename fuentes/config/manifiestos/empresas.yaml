@@ -1,0 +1,22 @@
+# BORRADOR generado desde el esquema real de EMPRESAS (config_microsip.generador).
+# Revisar cada regla antes de pasar a 'estado: vigente'. Nada aquí es una decisión de negocio verificada.
+# Filas en origen al generar: 1
+#
+# (sin observaciones)
+
+fuente: config
+estado: borrador
+tabla_origen: EMPRESAS
+tabla_destino: empresas
+llave_primaria: empresa_id
+fixture: fixtures/config/empresas_raw_snapshot.json
+depende_de: []
+catalogos: []
+
+campos:
+  - {origen: "EMPRESA_ID", destino: empresa_id, regla: entero, nulo_permitido: false}
+  - {origen: "NOMBRE_CORTO", destino: nombre_corto, regla: texto, nulo_permitido: false}
+  - {origen: "USUARIO_CREADOR", destino: usuario_creador, regla: texto, nulo_permitido: true}
+  - {origen: "FECHA_HORA_CREACION", destino: fecha_hora_creacion, regla: timestamp, nulo_permitido: true}
+  - {origen: "USUARIO_ULT_MODIF", destino: usuario_ult_modif, regla: texto, nulo_permitido: true}
+  - {origen: "FECHA_HORA_ULT_MODIF", destino: fecha_hora_ult_modif, regla: timestamp, nulo_permitido: true}

@@ -1,0 +1,36 @@
+# Manifiesto SINTÉTICO de prueba (ver tests/datos/LEEME.md).
+fuente: prueba
+estado: vigente
+tabla_origen: ELEMENTOS
+tabla_destino: elementos
+llave_primaria: elemento_id
+fixture: fixtures/prueba/elementos_raw_snapshot.json
+campo_checksum: importe
+depende_de: [estatus_elemento, grupos]
+
+catalogos:
+  - nombre: estatus_elemento
+    tipo: derivado
+    columnas: [codigo, descripcion]
+    valores:
+      - [A, Alta]
+      - [B, Baja]
+  - nombre: grupos
+    tipo: tabla
+    tabla_origen: GRUPOS
+    fixture: fixtures/prueba/grupos_raw_snapshot.json
+    columnas: [grupo_id, nombre]
+    mapeo_columnas:
+      - [GRUPO_ID, grupo_id]
+      - [NOMBRE, nombre]
+    al_borrar: cascade
+
+campos:
+  - {origen: ELEMENTO_ID, destino: elemento_id, regla: entero}
+  - {origen: NOMBRE, destino: nombre, regla: texto}
+  - {origen: ACTIVO, destino: activo, regla: bandera_sn}
+  - {origen: ESTATUS, destino: estatus, regla: catalogo_normalizado, catalogo_dominio: estatus_elemento, catalogo_fk: estatus_elemento}
+  - {origen: GRUPO_ID, destino: grupo_id, regla: entero, nulo_permitido: true, catalogo_fk: grupos}
+  - {origen: IMPORTE, destino: importe, regla: decimal_con_signo}
+  - {origen: FECHA_ALTA, destino: fecha_alta, regla: timestamp}
+  - {origen: NOTAS, destino: notas, regla: texto, nulo_permitido: true}

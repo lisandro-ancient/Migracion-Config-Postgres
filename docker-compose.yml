@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: config_microsip_postgres
+    environment:
+      POSTGRES_DB: config_microsip
+      POSTGRES_USER: migracion
+      POSTGRES_PASSWORD: migracion_dev_password
+    ports:
+      # 5434 en el host: 5432 suele ser un Postgres local y 5433 lo usa
+      # migracion-firebird-postgres-clientes.
+      - "5434:5432"
+    volumes:
+      - config_microsip_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U migracion -d config_microsip"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  config_microsip_pgdata:

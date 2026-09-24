@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge, flash %}
+{% block titulo %}Pruebas y validación{% endblock %}
+{% block migas %}Pruebas y validación{% endblock %}
+{% block contenido %}
+<div class="page-head"><div><h2>Pruebas y validación</h2><p>Controles de calidad de la migración: las suites reales de pytest de este proyecto.</p></div>
+  <form method="post" action="/tests/run" class="actions"><input type="hidden" name="suite" value="all">
+    <button class="refresh primary" type="submit" {% if en_curso %}disabled title="Hay pruebas en curso"{% endif %}>▶ Ejecutar todas las pruebas</button></form>
+</div>
+{{ flash(error, mensaje) }}
+{% if en_curso %}<div class="notice" hx-get="/tests" hx-trigger="every 3s" hx-select=".content" hx-target=".content" hx-swap="outerHTML">Hay pruebas en curso… esta página se actualiza sola.</div>{% endif %}
+<div class="grid kpis">
+  {% for clave, nombre in suites.items() %}{% set p = ultimo[clave] %}
+  <div class="card kpi" data-suite="{{ clave }}"><div class="kpi-head"><span>{{ nombre }}</span><span class="kpi-icon">{{ {"unit": "✓", "integration": "⚭", "differential": "⇄", "e2e": "↻"}[clave] }}</span></div>
+    {% if not p %}<div class="kpi-value muted">—</div><div class="kpi-sub">Todavía no se ejecuta</div>
+    {% elif p.estado == "en_progreso" %}<div class="kpi-value warn">En curso</div><div class="kpi-sub">Inicio {{ p.iniciado_en | hora }}</div>
+    {% else %}<div class="kpi-value {{ 'up' if p.estado == 'ok' else 'danger' }}">{{ p.pasaron or 0 }} / {{ (p.pasaron or 0) + (p.fallaron or 0) + (p.errores or 0) }}</div>
+      <div class="kpi-sub">{{ badge(p.estado) }} {% if p.saltadas %}{{ p.saltadas }} omitidas · {% endif %}{{ p.terminado_en | fecha_hora }}</div>{% endif %}
+    <form method="post" action="/tests/run" style="margin-top:8px"><input type="hidden" name="suite" value="{{ clave }}"><button class="btn" type="submit">Ejecutar</button></form>
+  </div>
+  {% endfor %}
+  {% set totales = namespace(ok=0, total=0) %}
+  {% for p in ultimo.values() if p and p.estado != "en_progreso" %}{% set totales.ok = totales.ok + (p.pasaron or 0) %}{% set totales.total = totales.total + (p.pasaron or 0) + (p.fallaron or 0) + (p.errores or 0) %}{% endfor %}
+  <div class="card kpi"><div class="kpi-head"><span>General</span><span class="kpi-icon">◆</span></div>
+    <div class="kpi-value {{ 'up' if totales.total and totales.ok == totales.total else 'warn' }}">{{ ((100 * totales.ok / totales.total) | round(1) ~ "%") if totales.total else "—" }}</div>
+    <div class="kpi-sub">{{ totales.ok }} de {{ totales.total }} pruebas aprobadas (última corrida de cada suite)</div></div>
+</div>
+<div class="card panel" style="margin-top:14px"><div class="panel-title"><h3>Flujo de validación</h3></div>
+  <div class="steps horizontal">
+    <div class="step">Validación del esquema<br><span class="muted">DDL desde el manifiesto, columnas comparadas</span></div>
+    <div class="step">Conteo de registros<br><span class="muted">extraídas = COUNT(*) = aceptadas + rechazadas</span></div>
+    <div class="step">Comparación diferencial<br><span class="muted">fila por fila, columna por columna</span></div>
+    <div class="step">Pruebas de integración<br><span class="muted">Firebird, PostgreSQL, MCP, panel</span></div>
+    <div class="step">Validación de extremo a extremo<br><span class="muted">servidor HTTP real + CLI</span></div>
+  </div>
+</div>
+<div class="grid halves">
+{% for clave, nombre in suites.items() if casos.get(clave) %}
+  <div class="card panel"><div class="panel-title"><h3>{{ nombre }}: última corrida</h3><span class="muted" style="font-size:10px">{{ casos[clave] | length }} pruebas</span></div>
+    <div class="table-wrap" style="max-height:320px"><table><tbody>
+    {% for c in casos[clave] | sort(attribute="resultado") %}
+      <tr><td>{% if c.resultado == "passed" %}<span class="up">✓</span>{% elif c.resultado == "skipped" %}<span class="muted">↷</span>{% else %}<span class="danger">✕</span>{% endif %}</td>
+        <td class="wrap">{{ c.nombre.split(".")[-1] }}{% if c.mensaje %}<br><span class="{{ 'muted' if c.resultado == 'skipped' else 'danger' }}">{{ c.mensaje }}</span>{% endif %}</td><td class="num muted">{{ "%.2f"|format(c.segundos) }} s</td></tr>
+    {% endfor %}
+    </tbody></table></div></div>
+{% endfor %}
+</div>
+{% if historial %}
+<div class="card table-card"><div class="panel" style="padding-bottom:5px"><div class="panel-title"><h3>Historial de corridas de pruebas</h3></div></div><div class="table-wrap"><table>
+  <thead><tr><th>Suite</th><th>Inicio</th><th>Estado</th><th class="num">Aprobadas</th><th class="num">Fallidas</th><th class="num">Errores</th><th class="num">Omitidas</th><th>Duración</th></tr></thead>
+  <tbody>{% for p in historial %}<tr><td>{{ suites.get(p.suite, "Todas las pruebas") }}</td><td>{{ p.iniciado_en | fecha_hora }}</td><td>{{ badge(p.estado) }}</td>
+    <td class="num">{{ p.pasaron | miles }}</td><td class="num {{ 'danger' if p.fallaron }}">{{ p.fallaron | miles }}</td><td class="num {{ 'danger' if p.errores }}">{{ p.errores | miles }}</td><td class="num">{{ p.saltadas | miles }}</td>
+    <td>{{ ((p.terminado_en - p.iniciado_en) | duracion) if p.terminado_en else "…" }}</td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% endif %}
+{% endblock %}

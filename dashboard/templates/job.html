@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block titulo %}Trabajo {{ trabajo.job_id }}{% endblock %}
+{% block migas %}Trabajos de migración · #{{ trabajo.job_id }}{% endblock %}
+{% block contenido %}
+<p><a href="/jobs">← Trabajos de migración</a></p>
+{% include "_job.html" %}
+{% endblock %}

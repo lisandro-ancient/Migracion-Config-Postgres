@@ -1,0 +1,26 @@
+# BORRADOR generado desde el esquema real de PLANTILLAS_WHATSAPP_SIS (config_microsip.generador).
+# Revisar cada regla antes de pasar a 'estado: vigente'. Nada aquí es una decisión de negocio verificada.
+# Filas en origen al generar: 0
+#
+# - FK real en origen: PLANTILLA_WHATSAPP_ID -> PLANTILLAS_WHATSAPP.PLANTILLA_WHATSAPP_ID (validada vía catálogo ref_plantillas_whatsapp)
+
+fuente: config
+estado: borrador
+tabla_origen: PLANTILLAS_WHATSAPP_SIS
+tabla_destino: plantillas_whatsapp_sis
+llave_primaria: plantillas_whatsapp_sis_id
+fixture: fixtures/config/plantillas_whatsapp_sis_raw_snapshot.json
+depende_de: [ref_plantillas_whatsapp]
+catalogos:
+  - nombre: ref_plantillas_whatsapp
+    tipo: tabla
+    tabla_origen: PLANTILLAS_WHATSAPP
+    fixture: fixtures/config/ref_plantillas_whatsapp_raw_snapshot.json
+    columnas: [plantilla_whatsapp_id]
+    mapeo_columnas: [["PLANTILLA_WHATSAPP_ID", plantilla_whatsapp_id]]
+    al_borrar: cascade
+
+campos:
+  - {origen: "PLANTILLAS_WHATSAPP_SIS_ID", destino: plantillas_whatsapp_sis_id, regla: entero, nulo_permitido: false}
+  - {origen: "PLANTILLA_WHATSAPP_ID", destino: plantilla_whatsapp_id, regla: entero, nulo_permitido: false, catalogo_fk: ref_plantillas_whatsapp}
+  - {origen: "CLAVE_SISTEMA", destino: clave_sistema, regla: texto, nulo_permitido: false}

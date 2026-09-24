@@ -1,0 +1,109 @@
+{% from "_macros.html" import badge, dot, lista_pasos, modo %}
+<div class="grid kpis">
+  <div class="card kpi"><div class="kpi-head"><span>Registros totales (Firebird)</span><span class="kpi-icon">◉</span></div>
+    <div class="kpi-value" id="kpi-source">{{ kpi.origen | miles }}</div>
+    <div class="kpi-sub">{% if comparacion %}Filas de origen en la última comparación ({{ modo(comparacion.modo) }}){% else %}Aún no hay comparación{% endif %}</div></div>
+  <div class="card kpi"><div class="kpi-head"><span>Migrados (PostgreSQL)</span><span class="kpi-icon">◉</span></div>
+    <div class="kpi-value" id="kpi-migrated">{{ kpi.migradas | miles }}</div>
+    <div class="kpi-sub {{ 'up' if kpi.migradas_pct == 100 else 'warn' }}">{% if kpi.migradas_pct is not none %}{{ kpi.migradas_pct }}% de las filas migrables coinciden{% else %}—{% endif %}</div></div>
+  <div class="card kpi"><div class="kpi-head"><span>Tiempo de migración</span><span class="kpi-icon">◷</span></div>
+    <div class="kpi-value" id="kpi-time">{{ kpi.duracion | duracion }}</div>
+    <div class="kpi-sub">{% if trabajo %}{{ "En curso desde" if trabajo.estado == "en_progreso" else "Último trabajo iniciado el" }} {{ trabajo.iniciado_en | fecha_hora }}{% else %}Aún no hay trabajos de migración{% endif %}</div></div>
+  <div class="card kpi"><div class="kpi-head"><span>Errores</span><span class="kpi-icon">!</span></div>
+    <div class="kpi-value {{ 'danger' if kpi.errores else 'up' }}" id="kpi-errors">{{ kpi.errores }}</div>
+    <div class="kpi-sub {{ 'danger' if kpi.errores }}">{{ kpi.tablas_fail }} tablas fallidas · {{ kpi.errores_dif }} desviaciones diferenciales{% if kpi.rechazadas %} · {{ kpi.rechazadas }} filas rechazadas{% endif %}</div></div>
+  <div class="card kpi"><div class="kpi-head"><span>Pendientes</span><span class="kpi-icon">✓</span></div>
+    <div class="kpi-value" id="kpi-pending">{{ kpi.pendientes | miles }}</div>
+    <div class="kpi-sub">Filas de origen que aún no coinciden en PostgreSQL</div></div>
+</div>
+
+<div class="grid two">
+  <div class="card panel"><div class="panel-title"><h3>Progreso de la migración</h3>{% if trabajo %}<a href="/jobs/{{ trabajo.job_id }}">Ver detalle →</a>{% endif %}</div>
+    {% if grafica.vacio %}
+      <div class="empty">Todavía no hay progreso. Ejecuta un trabajo de migración para ver las tablas procesadas en el tiempo.</div>
+    {% else %}
+    <div class="chart">
+      <div class="chart-grid"></div><div class="axis"><span>100%</span><span>75%</span><span>50%</span><span>25%</span><span>0%</span></div>
+      <svg class="svgchart" viewBox="0 0 600 180" preserveAspectRatio="none" role="img" aria-label="Tablas procesadas en el tiempo">
+        <polyline points="{{ grafica.puntos }}" fill="none" stroke="#18a66a" stroke-width="3" vector-effect="non-scaling-stroke"/>
+      </svg>
+      <div class="xaxis">{% for e in grafica.etiquetas %}<span>{{ e }}</span>{% endfor %}</div>
+    </div>
+    <div class="legend"><span><i class="dot" style="background:#18a66a"></i>Tablas procesadas (% de {{ trabajo.tablas_total }})</span></div>
+    {% endif %}
+  </div>
+  <div class="card panel"><div class="panel-title"><h3>Comparación de datos</h3><a href="/data">Abrir comparación →</a></div>
+    {% if dona %}
+    <div class="comparison">
+      <div class="donut" style="background:conic-gradient({{ dona.gradiente }})"><div class="donut-hole">{{ dona.total | miles }}<small>filas comparadas</small></div></div>
+      <div>
+        <div class="comp-row"><span class="up">● Coinciden</span><b id="cmp-matched">{{ dona.coinciden | miles }} · {{ dona.pct.coinciden }}%</b></div>
+        <div class="comp-row"><span class="warn">● Diferencias</span><b id="cmp-diff">{{ dona.diferentes | miles }} · {{ dona.pct.diferentes }}%</b></div>
+        <div class="comp-row"><span class="danger">● Faltantes / sobrantes</span><b id="cmp-missing">{{ (dona.faltantes + dona.sobrantes) | miles }} · {{ (dona.pct.faltantes + dona.pct.sobrantes) | round(1) }}%</b></div>
+        <div class="comp-row"><span class="muted">Revisado</span><b>{{ comparacion.terminado_en | fecha_hora }}{% if comparacion_en_curso %} · ejecutándose de nuevo…{% endif %}</b></div>
+      </div>
+    </div>
+    {% else %}
+      <div class="empty">Aún no hay comparación diferencial.{% if comparacion_en_curso %} Hay una en curso…{% endif %}</div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="grid two">
+  <div class="card panel"><div class="panel-title"><h3>Resultados de pruebas</h3><a href="/tests">Ver todo →</a></div><div class="test-list">
+    {% for clave, nombre in suites.items() %}{% set p = pruebas[clave] %}
+    <div class="test" data-suite="{{ clave }}">
+      {% if not p %}<span class="status-dot none">–</span><span>{{ nombre }}</span><b class="muted">Sin ejecutar</b>
+      {% elif p.estado == "en_progreso" %}<span class="status-dot run">◷</span><span>{{ nombre }}</span><b class="warn">En curso</b>
+      {% elif p.estado == "ok" %}<span class="status-dot">✓</span><span>{{ nombre }}</span><b class="up">{{ p.pasaron }}/{{ p.pasaron + p.fallaron + p.errores }}{% if p.saltadas %} · {{ p.saltadas }} omitidas{% endif %}</b>
+      {% else %}<span class="status-dot fail">✕</span><span>{{ nombre }}</span><b class="danger">{{ p.pasaron or 0 }}/{{ (p.pasaron or 0) + (p.fallaron or 0) + (p.errores or 0) }}{% if p.estado == "error" %} · error{% endif %}</b>{% endif %}
+    </div>
+    {% endfor %}
+  </div></div>
+  <div class="card panel"><div class="panel-title"><h3>{{ "Trabajo de migración actual" if trabajo and trabajo.estado == "en_progreso" else "Último trabajo de migración" }}</h3>
+      {% if trabajo %}<span class="job-status {{ 'run' if trabajo.estado == 'en_progreso' else ('fail' if trabajo.estado in ('fail','error') else '') }}">● {{ {"en_progreso": "En curso", "ok": "Completado", "fail": "Completado con fallas", "error": "Error"}[trabajo.estado] }}</span>{% endif %}</div>
+    {% if trabajo %}
+      <b><a href="/jobs/{{ trabajo.job_id }}">Trabajo #{{ trabajo.job_id }}</a></b>
+      <div class="job-meta"><div>Inicio<b>{{ trabajo.iniciado_en | fecha_hora }}</b></div><div>Origen<b>{{ modo(trabajo.modo) }} · {{ trabajo.fuente }}</b></div>
+        <div>Destino<b>PostgreSQL :{{ sistema.postgres.conexion.puerto }}</b></div><div>Tabla actual<b>{{ trabajo.tabla_actual or "—" }}</b></div></div>
+      <div class="progress"><span style="width:{{ progreso_pct or 0 }}%"></span></div>
+      <div class="progress-label"><span>{{ procesadas }}/{{ trabajo.tablas_total }} tablas · {{ trabajo.filas_migradas | miles }} filas cargadas</span><b>{{ progreso_pct or 0 }}%</b></div>
+      {{ lista_pasos(pasos) }}
+    {% else %}
+      <div class="empty">Aún no hay trabajos de migración: usa «Ejecutar migración».</div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="grid bottom">
+  <div class="card panel activity"><div class="panel-title"><h3>Actividad reciente</h3><a href="/logs">Ver todo →</a></div>
+    {% for e in actividad %}
+      <div class="activity-row"><span class="{{ dot(e.estado) }}"></span><span class="activity-time">{{ e.cuando | hora }}</span>
+        <span><a href="{{ e.enlace }}">{{ e.texto }}</a> — {{ badge(e.estado) }}</span></div>
+    {% else %}<div class="empty">Todavía no se ha ejecutado nada.</div>{% endfor %}
+  </div>
+  <div class="card panel errors"><div class="panel-title"><h3>Resumen de errores</h3><a href="/logs">Ver todo →</a></div>
+    {% for e in errores %}
+      <div class="error-row"><span class="time">{{ e.cuando | hora }}</span><b><a href="{{ e.enlace }}">{{ e.tabla }}</a></b><span class="err">{{ e.tipo }}</span><span>{{ e.texto }}</span></div>
+    {% else %}<div class="empty up">✓ Sin errores en las corridas recientes.</div>{% endfor %}
+  </div>
+  <div class="card panel"><div class="panel-title"><h3>Estado del agente</h3><span class="job-status {{ 'idle' if not pendientes_agente }}">● {{ "Esperando revisión" if pendientes_agente else "Nada pendiente" }}</span></div>
+    <p style="font-size:11px;line-height:1.7;color:#536b84">El agente es la sesión de Claude conectada mediante el servidor MCP <code>config-microsip</code>. Lee estos resultados y propone cambios a los manifiestos; una persona los revisa y los aplica.</p>
+    {% if pendientes_agente %}<div class="notice">✦ <b>{{ pendientes_agente | length }} decisiones abiertas</b> en los manifiestos; por ejemplo, <b>{{ pendientes_agente[0].tabla }}</b>: {{ pendientes_agente[0].texto }}</div>{% endif %}
+    <a class="btn" href="/agent">Abrir consola del agente</a>
+  </div>
+</div>
+
+<div class="card table-card"><div class="panel" style="padding-bottom:5px"><div class="panel-title"><h3>Historial de migraciones</h3><a href="/jobs">Ver todo →</a></div></div><div class="table-wrap">
+  <table><thead><tr><th>Trabajo</th><th>Inicio</th><th>Fin</th><th>Estado</th><th>Modo</th><th class="num">Filas (origen / cargadas)</th><th>Duración</th><th>Tablas</th><th>Acción</th></tr></thead>
+  <tbody>
+  {% for t in historial %}
+    <tr><td>#{{ t.job_id }}</td><td>{{ t.iniciado_en | fecha_hora }}</td><td>{{ t.terminado_en | fecha_hora if t.terminado_en else "En curso" }}</td>
+      <td>{{ badge(t.estado, ok="Completado", fail="Fallido") }}</td><td>{{ modo(t.modo) }}</td>
+      <td class="num">{{ t.filas_origen | miles }} / {{ t.filas_migradas | miles }}</td>
+      <td>{{ ((t.terminado_en or sistema.comprobado_en) - t.iniciado_en) | duracion }}</td>
+      <td class="{{ 'danger' if t.tablas_fail }}">{{ t.tablas_ok }}/{{ t.tablas_total }} aprobadas</td>
+      <td><a class="btn" href="/jobs/{{ t.job_id }}">Ver</a></td></tr>
+  {% else %}<tr><td colspan="9" class="empty">Aún no hay trabajos de migración.</td></tr>{% endfor %}
+  </tbody></table>
+</div></div>

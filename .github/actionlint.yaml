@@ -1,0 +1,4 @@
+self-hosted-runner:
+  # Runner propio con acceso a una copia de la CONFIG real (ver workflows/config-real.yml).
+  labels:
+    - config-microsip

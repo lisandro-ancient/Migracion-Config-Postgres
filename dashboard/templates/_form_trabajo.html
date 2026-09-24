@@ -1,0 +1,8 @@
+<form method="post" action="/jobs" class="card panel actions" id="new-job">
+  <b style="font-size:12px">Nuevo trabajo de migración</b>
+  <label>Fuente <select name="fuente">{% for f in fuentes %}<option value="{{ f }}" {{ 'selected' if f == fuente_defecto }}>{{ f }}</option>{% endfor %}</select></label>
+  <label><input type="checkbox" name="firebird_real" value="1" {% if sistema.firebird.ok and sistema.firebird.es_base_config %}checked{% endif %}> Leer Firebird en vivo (si no, la instantánea capturada)</label>
+  <label><input type="checkbox" name="permitir_borrador" value="1" checked> Incluir manifiestos en borrador</label>
+  <label><input type="checkbox" name="reset_esquema" value="1"> Borrar antes el esquema de PostgreSQL</label>
+  <button class="refresh primary" type="submit" {% if ocupado %}disabled title="Ya hay un trabajo en curso"{% endif %}>+ Nueva migración</button>
+</form>

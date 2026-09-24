@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge, flash, modo %}
+{% block titulo %}Resumen de datos{% endblock %}
+{% block migas %}Resumen de datos{% endblock %}
+{% block contenido %}
+<div class="page-head"><div><h2>Resumen de datos</h2><p>Comparación diferencial entre origen y destino: cada fila, cada columna y la estructura de cada tabla.</p></div>
+  {% if fuente_defecto %}
+  <form method="post" action="/data/comparar" class="actions">
+    <input type="hidden" name="fuente" value="{{ fuente_defecto }}">
+    <label><input type="checkbox" name="firebird_real" value="1" {% if sistema.firebird.ok and sistema.firebird.es_base_config %}checked{% endif %}> Leer Firebird en vivo</label>
+    <button class="refresh primary" type="submit" {% if ocupado %}disabled title="Ya hay un trabajo en curso"{% endif %}>⇄ Ejecutar comparación diferencial</button>
+  </form>
+  {% endif %}
+</div>
+{{ flash(error, mensaje) }}
+{% if en_curso %}<div class="notice" hx-get="/data" hx-trigger="every 3s" hx-select=".content" hx-target=".content" hx-swap="outerHTML">Hay una comparación en curso… esta página se actualiza sola al terminar.</div>{% endif %}
+<div class="notice"><b>Origen:</b> Firebird CONFIG · <b>Destino:</b> PostgreSQL <code>{{ sistema.postgres.conexion.base_datos }}</code>.
+  Una fila <b>coincide</b> cuando su llave existe en ambos lados con valores idénticos en todas las columnas; <b>diferente</b> = misma llave, alguna columna difiere; <b>faltante</b> = está en el origen pero no en PostgreSQL; <b>sobrante</b> = está en PostgreSQL pero ya no en el origen. Las filas que las reglas rechazan deben estar ausentes y se cuentan aparte.</div>
+
+<div class="grid kpis">
+  <div class="card kpi"><div class="kpi-head"><span>Tablas</span><span class="kpi-icon">▤</span></div><div class="kpi-value">{{ tablas_manifiesto }}</div>
+    <div class="kpi-sub up">{% if informe %}{{ informe.tablas | selectattr("ok") | list | length }} idénticas en la última comparación{% else %}con manifiesto{% endif %}</div></div>
+  <div class="card kpi"><div class="kpi-head"><span>Columnas</span><span class="kpi-icon">▥</span></div><div class="kpi-value">{{ columnas }}</div><div class="kpi-sub">Mapeadas en los manifiestos</div></div>
+  <div class="card kpi"><div class="kpi-head"><span>Diferencias</span><span class="kpi-icon">!</span></div><div class="kpi-value {{ 'warn' if elegida and elegida.diferentes }}">{{ (elegida.diferentes if elegida else none) | miles }}</div><div class="kpi-sub">Filas con alguna columna distinta</div></div>
+  <div class="card kpi"><div class="kpi-head"><span>Faltantes / sobrantes</span><span class="kpi-icon">×</span></div><div class="kpi-value {{ 'danger' if elegida and (elegida.faltantes or elegida.sobrantes) }}">{{ ((elegida.faltantes + elegida.sobrantes) if elegida else none) | miles }}</div><div class="kpi-sub">{{ elegida.faltantes if elegida else 0 }} faltantes · {{ elegida.sobrantes if elegida else 0 }} sobrantes</div></div>
+  <div class="card kpi"><div class="kpi-head"><span>Coinciden</span><span class="kpi-icon">✓</span></div><div class="kpi-value {{ 'up' if elegida and elegida.estado == 'ok' }}">{{ (dona.pct.coinciden ~ "%") if dona and dona.total else "—" }}</div><div class="kpi-sub">{{ (elegida.coinciden if elegida else none) | miles }} filas idénticas</div></div>
+</div>
+
+{% if informe %}
+<div class="card table-card"><div class="panel" style="padding-bottom:5px"><div class="panel-title"><h3>Comparación {{ informe.comparacion_id }} · {{ modo(informe.modo) }} · {{ elegida.terminado_en | fecha_hora }}</h3>{{ badge(elegida.estado, ok="Idéntica", fail="Con diferencias") }}</div></div>
+<div class="table-wrap"><table>
+  <thead><tr><th>Tabla</th><th>Resultado</th><th>Esquema</th><th class="num">Filas origen</th><th class="num">Rechazadas</th><th class="num">Filas PostgreSQL</th><th class="num">Coinciden</th><th class="num">Diferentes</th><th class="num">Faltantes</th><th class="num">Sobrantes</th></tr></thead>
+  <tbody>
+  {% for t in informe.tablas %}
+    <tr><td><b>{{ t.tabla }}</b></td><td>{{ badge("ok" if t.ok else "fail", ok="Idéntica", fail="Difiere") }}</td>
+      <td>{% if t.error %}<span class="danger">error</span>{% elif t.esquema.ok %}<span class="up">✓</span>{% else %}<span class="danger">✕ {{ "sin tabla" if not t.tabla_en_postgres else "columnas distintas" }}</span>{% endif %}</td>
+      <td class="num">{{ t.filas_origen | miles }}</td><td class="num">{{ t.rechazadas | miles }}</td><td class="num">{{ t.filas_destino | miles }}</td>
+      <td class="num up">{{ t.coinciden | miles }}</td><td class="num {{ 'warn' if t.diferentes }}">{{ t.diferentes | miles }}</td>
+      <td class="num {{ 'danger' if t.faltantes }}">{{ t.faltantes | miles }}</td><td class="num {{ 'danger' if t.sobrantes }}">{{ t.sobrantes | miles }}</td></tr>
+    {% if t.error %}<tr><td colspan="10" class="wrap danger">{{ t.error }}</td></tr>{% endif %}
+  {% endfor %}
+  </tbody></table></div></div>
+
+{% set con_problemas = informe.tablas | rejectattr("ok") | list %}
+{% if con_problemas %}
+<div class="card panel" style="margin-top:14px"><div class="panel-title"><h3>Muestras de desviaciones</h3></div>
+  {% for t in con_problemas %}
+    <h4>{{ t.tabla }}</h4>
+    {% if t.esquema and not t.esquema.ok %}<div class="notice warn">Columnas esperadas: {{ t.esquema.esperadas | join(", ") }}. PostgreSQL tiene: {{ t.esquema.en_postgres | join(", ") or "ninguna tabla" }}.</div>{% endif %}
+    {% for d in t.muestra_diferencias or [] %}<div class="error-row"><b>{{ d.llave }}</b>{% for col, v in d.columnas.items() %}<span><b>{{ col }}</b>: origen <code>{{ v.origen }}</code> ≠ postgres <code>{{ v.postgres }}</code></span>{% endfor %}</div>{% endfor %}
+    {% if t.muestra_faltantes %}<p class="danger" style="font-size:11px">Llaves faltantes: {{ t.muestra_faltantes | join(", ") }}</p>{% endif %}
+    {% if t.muestra_sobrantes %}<p class="danger" style="font-size:11px">Llaves sobrantes: {{ t.muestra_sobrantes | join(", ") }}</p>{% endif %}
+  {% endfor %}
+</div>
+{% endif %}
+{% else %}
+<div class="card panel" style="margin-top:14px"><div class="empty">Aún no hay comparación diferencial. Ejecuta una arriba, o ejecuta un trabajo de migración (termina con una).</div></div>
+{% endif %}
+
+{% if comparaciones %}
+<div class="card table-card"><div class="panel" style="padding-bottom:5px"><div class="panel-title"><h3>Historial de comparaciones</h3></div></div><div class="table-wrap"><table>
+  <thead><tr><th>ID</th><th>Fin</th><th>Modo</th><th>Estado</th><th class="num">Coinciden</th><th class="num">Diferentes</th><th class="num">Faltantes</th><th class="num">Sobrantes</th><th></th></tr></thead>
+  <tbody>{% for c in comparaciones %}<tr><td>{{ c.comparacion_id }}</td><td>{{ c.terminado_en | fecha_hora }}</td><td>{{ modo(c.modo) }}</td><td>{{ badge(c.estado, ok="Idéntica", fail="Con diferencias") }}</td>
+    <td class="num">{{ c.coinciden | miles }}</td><td class="num">{{ c.diferentes | miles }}</td><td class="num">{{ c.faltantes | miles }}</td><td class="num">{{ c.sobrantes | miles }}</td>
+    <td>{% if c.estado != "en_progreso" %}<a class="btn" href="/data?id={{ c.comparacion_id }}">Abrir</a>{% endif %}</td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% endif %}
+{% endblock %}

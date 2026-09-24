@@ -1,0 +1,9 @@
+{
+  "_nota": "SINTÉTICO. Casos escritos a mano a partir de las reglas declaradas (no copiados de una corrida): recorte de espacios, código de catálogo a mayúsculas, decimal con signo sin redondeo, texto vacío -> null, acentos preservados.",
+  "casos": [
+    {"entrada": {"elemento_id": 1}, "salida_esperada": {"elemento_id": 1, "nombre": "Elemento uno", "activo": true, "estatus": "A", "grupo_id": 10, "importe": "100.50", "fecha_alta": "2020-01-15 10:30:00", "notas": null}},
+    {"entrada": {"elemento_id": 2}, "salida_esperada": {"nombre": "Elemento dos", "activo": false, "importe": "-25.1250", "notas": "con nota"}},
+    {"entrada": {"elemento_id": 3}, "salida_esperada": {"grupo_id": null, "importe": "0", "notas": null}},
+    {"entrada": {"elemento_id": 5}, "salida_esperada": {"nombre": "Dólar ñandú"}}
+  ]
+}

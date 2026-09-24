@@ -1,0 +1,19 @@
+# Actualizaciones automáticas: cada lunes abre PRs (que pasan por toda la CI) para
+# dependencias de Python, acciones de GitHub y la imagen base de Docker.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 5
+    groups:
+      pruebas:
+        patterns: ["pytest*", "allure-pytest", "httpx", "anyio"]
+      calidad:
+        patterns: ["ruff", "mypy", "bandit", "pip-audit", "types-*", "build", "twine", "pre-commit", "actionlint-py"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly, day: monday }
+  - package-ecosystem: docker
+    directory: /
+    schedule: { interval: weekly, day: monday }

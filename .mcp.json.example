@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "config-microsip": {
+      "type": "stdio",
+      "command": "/Users/<tu-usuario>/dev/firebird-config-microsip/.venv/bin/python",
+      "args": ["-m", "config_microsip.mcp_server"],
+      "cwd": "/Users/<tu-usuario>/dev/firebird-config-microsip",
+      "env": {
+        "PYTHONPATH": "/Users/<tu-usuario>/dev/firebird-config-microsip/src"
+      }
+    }
+  }
+}

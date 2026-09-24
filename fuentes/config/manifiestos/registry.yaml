@@ -1,0 +1,23 @@
+# BORRADOR generado desde el esquema real de REGISTRY (config_microsip.generador).
+# Revisar cada regla antes de pasar a 'estado: vigente'. Nada aquí es una decisión de negocio verificada.
+# Filas en origen al generar: 27
+#
+# - TIPO: CHAR(1) con valores observados ['L', 'V'] — ¿catálogo derivado?
+# - VALOR_BLOB (BLOB): excluida — sin regla para la categoría 'blob'
+
+fuente: config
+estado: borrador
+tabla_origen: REGISTRY
+tabla_destino: registry
+llave_primaria: elemento_id
+fixture: fixtures/config/registry_raw_snapshot.json
+depende_de: []
+catalogos: []
+
+campos:
+  - {origen: "ELEMENTO_ID", destino: elemento_id, regla: entero, nulo_permitido: false}
+  - {origen: "NOMBRE", destino: nombre, regla: texto, nulo_permitido: false}
+  - {origen: "TIPO", destino: tipo, regla: texto, nulo_permitido: false}
+  - {origen: "PADRE_ID", destino: padre_id, regla: entero, nulo_permitido: false}
+  - {origen: "VALOR", destino: valor, regla: texto, nulo_permitido: true}
+  - {origen: "VALOR_MEMO", destino: valor_memo, regla: texto, nulo_permitido: true}

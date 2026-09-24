@@ -1,0 +1,7 @@
+{
+  "_meta": {"fuente": "prueba", "tabla_origen": "GRUPOS", "conteo_origen": 2, "nota": "SINTÉTICO — ver tests/datos/LEEME.md"},
+  "filas": [
+    {"GRUPO_ID": 10, "NOMBRE": "Grupo diez"},
+    {"GRUPO_ID": 20, "NOMBRE": "Grupo veinte"}
+  ]
+}

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge, flash, modo %}
+{% block titulo %}Trabajos de migración{% endblock %}
+{% block migas %}Trabajos de migración{% endblock %}
+{% block contenido %}
+<div class="page-head"><div><h2>Trabajos de migración</h2><p>Cada ejecución y su ciclo de vida: todas las tablas de padre a hijo y, al final, una comparación diferencial.</p></div></div>
+{{ flash(error, mensaje) }}
+{% include "_form_trabajo.html" %}
+<div class="card table-card"><div class="table-wrap"><table>
+  <thead><tr><th>Trabajo</th><th>Inicio</th><th>Fin</th><th>Estado</th><th>Origen</th><th>Destino</th><th class="num">Filas (origen / cargadas)</th><th>Tablas</th><th>Duración</th><th>Acción</th></tr></thead>
+  <tbody>
+  {% for t in trabajos %}
+    <tr><td>#{{ t.job_id }}</td><td>{{ t.iniciado_en | fecha_hora }}</td><td>{{ t.terminado_en | fecha_hora if t.terminado_en else "En curso" }}</td>
+      <td>{{ badge(t.estado, ok="Completado", fail="Fallido") }}</td><td>Firebird · {{ modo(t.modo) }} · {{ t.fuente }}</td><td>PostgreSQL · {{ t.fuente }}</td>
+      <td class="num">{{ t.filas_origen | miles }} / {{ t.filas_migradas | miles }}</td>
+      <td class="{{ 'danger' if t.tablas_fail }}">{{ t.tablas_ok }}/{{ t.tablas_total }}</td>
+      <td>{{ ((t.terminado_en or sistema.comprobado_en) - t.iniciado_en) | duracion }}</td>
+      <td><a class="btn" href="/jobs/{{ t.job_id }}">Detalle</a></td></tr>
+  {% else %}<tr><td colspan="10" class="empty">Aún no hay trabajos de migración.</td></tr>{% endfor %}
+  </tbody></table></div></div>
+{% endblock %}

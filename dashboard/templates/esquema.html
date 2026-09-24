@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block titulo %}Esquema en vivo{% endblock %}
+{% block migas %}Esquema en vivo{% endblock %}
+{% block contenido %}
+<div class="page-head"><div><h2>Esquema en vivo</h2><p>Leído directamente de <code>FIREBIRD_DATABASE</code> en una transacción de solo lectura.</p></div></div>
+{% if conexion.ok %}
+<div class="grid kpis four">
+  <div class="card kpi"><div class="kpi-head"><span>Tablas de usuario</span></div><div class="kpi-value">{{ conexion.tablas_de_usuario }}</div></div>
+  <div class="card kpi"><div class="kpi-head"><span>Motor</span></div><div class="kpi-value">{{ conexion.version_motor }}</div><div class="kpi-sub">{{ conexion.conexion.modo }}</div></div>
+  <div class="card kpi"><div class="kpi-head"><span>Solo lectura</span></div><div class="kpi-value {{ 'up' if conexion.transaccion_solo_lectura else 'danger' }}">{{ "sí" if conexion.transaccion_solo_lectura else "NO" }}</div></div>
+  <div class="card kpi"><div class="kpi-head"><span>Base CONFIG</span></div><div class="kpi-value {{ 'up' if conexion.es_base_config else 'danger' }}">{{ "sí" if conexion.es_base_config else "no" }}</div><div class="kpi-sub">{{ conexion.archivo }}</div></div>
+</div>
+{% if not conexion.es_base_config %}<div class="notice bad" style="margin-top:14px"><b>Esta no es la base CONFIG.</b> {{ conexion.motivo }}</div>{% endif %}
+{% endif %}
+{% if error %}<div class="notice bad" style="margin-top:14px">No se pudo leer la base: {{ error }}
+
+Revisa .env (FIREBIRD_DATABASE, FIREBIRD_CLIENT_LIBRARY, FIREBIRD_RUNTIME_DIR) y ejecuta
+python -m config_microsip.cli verificar-conexion</div>{% endif %}
+{% if tablas %}
+<div class="card table-card"><div class="table-wrap"><table><thead><tr><th>Tabla</th><th class="num">Filas</th><th></th></tr></thead>
+  <tbody>{% for t in tablas %}<tr><td>{{ t.tabla }}</td><td class="num">{{ t.filas | miles }}</td><td><a class="btn" href="/esquema/{{ t.tabla }}">Describir</a></td></tr>{% endfor %}</tbody></table></div></div>
+{% endif %}
+{% endblock %}

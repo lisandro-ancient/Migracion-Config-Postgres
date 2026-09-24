@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block titulo %}Configuración{% endblock %}
+{% block migas %}Configuración{% endblock %}
+{% block contenido %}
+<div class="page-head"><div><h2>Configuración</h2><p>Conexiones y comportamiento. Los valores vienen de <code>.env</code>: edita ese archivo y reinicia el panel para cambiarlos.</p></div></div>
+<div class="grid halves">
+  <div class="card panel"><div class="panel-title"><h3>Firebird (origen)</h3><span class="badge {{ 'success' if sistema.firebird.ok else 'failed' }}">{{ "Conectado" if sistema.firebird.ok else "No disponible" }}</span></div>
+    {% set fb = sistema.firebird %}
+    {% if fb.ok %}
+    <dl class="kv">
+      <dt>Modo</dt><dd>{{ fb.conexion.modo }}</dd><dt>Base de datos</dt><dd>{{ fb.conexion.dsn }}</dd><dt>Usuario</dt><dd>{{ fb.conexion.usuario }}</dd>
+      <dt>Motor / ODS</dt><dd>Firebird {{ fb.version_motor }} · ODS {{ fb.ods }}</dd><dt>Juego de caracteres</dt><dd>{{ fb.conexion.charset_conexion }}{% if fb.conexion.codificacion_python %} (decodificado como {{ fb.conexion.codificacion_python }}){% endif %}</dd>
+      <dt>Transacción de solo lectura</dt><dd class="{{ 'up' if fb.transaccion_solo_lectura else 'danger' }}">{{ "sí, confirmado por el servidor" if fb.transaccion_solo_lectura else "NO" }}</dd>
+      <dt>Es una base CONFIG</dt><dd class="{{ 'up' if fb.es_base_config else 'danger' }}">{{ "sí" if fb.es_base_config else "no: " ~ fb.motivo }}</dd>
+      <dt>Tablas de usuario</dt><dd>{{ fb.tablas_de_usuario }}</dd>
+    </dl>
+    {% else %}<div class="notice bad">{{ fb.error }}</div>{% endif %}
+  </div>
+  <div class="card panel"><div class="panel-title"><h3>PostgreSQL (destino)</h3><span class="badge {{ 'success' if sistema.postgres.ok else 'failed' }}">{{ "Conectado" if sistema.postgres.ok else "No disponible" }}</span></div>
+    <dl class="kv"><dt>Servidor</dt><dd>{{ postgres.host }}:{{ postgres.puerto }}</dd><dt>Base de datos</dt><dd>{{ postgres.base_datos }}</dd><dt>Usuario</dt><dd>{{ postgres.usuario }}</dd>
+      <dt>Versión</dt><dd>{{ sistema.postgres.version or "—" }}</dd><dt>Esquema por fuente</dt><dd>un esquema de PostgreSQL por fuente (por ejemplo, <code>config</code>)</dd></dl>
+    {% if not sistema.postgres.ok %}<div class="notice bad" style="margin-top:12px">{{ sistema.postgres.error }}</div>{% endif %}
+  </div>
+</div>
+<div class="card panel" style="margin-top:14px"><div class="panel-title"><h3>Configuración de la migración</h3></div>
+  <dl class="kv">
+    <dt>Estrategia de carga</dt><dd>Espejo por tabla en una sola transacción: inserta o actualiza cada fila del origen y borra las que ya no existen en él</dd>
+    <dt>Control previo</dt><dd>Una tabla solo se carga después de pasar la validación contra el origen</dd>
+    <dt>Llaves foráneas</dt><dd>Misma regla de borrado que en CONFIG (cascada / restricción), diferibles</dd>
+    <dt>Manifiestos en borrador</dt><dd>Bloqueados salvo que se incluyan explícitamente</dd>
+    <dt>Concurrencia</dt><dd>Una migración o comparación a la vez</dd>
+    <dt>Raíz de datos</dt><dd>{{ raiz_datos }}</dd><dt>Registro (ledger)</dt><dd>{{ ledger_ruta }}</dd><dt>Versión</dt><dd>{{ version }}</dd>
+  </dl>
+</div>
+{% endblock %}

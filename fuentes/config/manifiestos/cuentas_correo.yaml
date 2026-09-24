@@ -1,0 +1,54 @@
+# BORRADOR generado desde el esquema real de CUENTAS_CORREO (config_microsip.generador).
+# Revisar cada regla antes de pasar a 'estado: vigente'. Nada aquí es una decisión de negocio verificada.
+# Filas en origen al generar: 0
+#
+# - TIPO: CHAR(1) con valores observados [] — ¿catálogo derivado?
+# - PASSWORD: excluida — contiene credenciales; no debe terminar en un snapshot
+# - REFRESH_TOKEN: excluida — contiene credenciales; no debe terminar en un snapshot
+# - FK real en origen: EMPRESA_ID -> EMPRESAS.EMPRESA_ID (validada vía catálogo ref_empresas)
+# - FK real en origen: USUARIO_ID -> USUARIOS.USUARIO_ID (validada vía catálogo ref_usuarios)
+# - FK real en origen: SERVIDOR_CORREO_ID -> SERVIDORES_CORREO.SERVIDOR_CORREO_ID (validada vía catálogo ref_servidores_correo)
+
+fuente: config
+estado: borrador
+tabla_origen: CUENTAS_CORREO
+tabla_destino: cuentas_correo
+llave_primaria: cuenta_correo_id
+fixture: fixtures/config/cuentas_correo_raw_snapshot.json
+depende_de: [ref_empresas, ref_usuarios, ref_servidores_correo]
+catalogos:
+  - nombre: ref_empresas
+    tipo: tabla
+    tabla_origen: EMPRESAS
+    fixture: fixtures/config/ref_empresas_raw_snapshot.json
+    columnas: [empresa_id]
+    mapeo_columnas: [["EMPRESA_ID", empresa_id]]
+    al_borrar: cascade
+  - nombre: ref_usuarios
+    tipo: tabla
+    tabla_origen: USUARIOS
+    fixture: fixtures/config/ref_usuarios_raw_snapshot.json
+    columnas: [usuario_id]
+    mapeo_columnas: [["USUARIO_ID", usuario_id]]
+    al_borrar: cascade
+  - nombre: ref_servidores_correo
+    tipo: tabla
+    tabla_origen: SERVIDORES_CORREO
+    fixture: fixtures/config/ref_servidores_correo_raw_snapshot.json
+    columnas: [servidor_correo_id]
+    mapeo_columnas: [["SERVIDOR_CORREO_ID", servidor_correo_id]]
+    al_borrar: cascade
+
+campos:
+  - {origen: "CUENTA_CORREO_ID", destino: cuenta_correo_id, regla: entero, nulo_permitido: false}
+  - {origen: "TIPO", destino: tipo, regla: texto, nulo_permitido: false}
+  - {origen: "EMPRESA_ID", destino: empresa_id, regla: entero, nulo_permitido: true, catalogo_fk: ref_empresas}
+  - {origen: "USUARIO_ID", destino: usuario_id, regla: entero, nulo_permitido: true, catalogo_fk: ref_usuarios}
+  - {origen: "DESCRIPCION", destino: descripcion, regla: texto, nulo_permitido: false}
+  - {origen: "SERVIDOR_CORREO_ID", destino: servidor_correo_id, regla: entero, nulo_permitido: false, catalogo_fk: ref_servidores_correo}
+  - {origen: "DIR_CORREO", destino: dir_correo, regla: texto, nulo_permitido: false}
+  - {origen: "NOMBRE_REMITENTE", destino: nombre_remitente, regla: texto, nulo_permitido: false}
+  - {origen: "USUARIO_CREADOR", destino: usuario_creador, regla: texto, nulo_permitido: true}
+  - {origen: "FECHA_HORA_CREACION", destino: fecha_hora_creacion, regla: timestamp, nulo_permitido: true}
+  - {origen: "USUARIO_ULT_MODIF", destino: usuario_ult_modif, regla: texto, nulo_permitido: true}
+  - {origen: "FECHA_HORA_ULT_MODIF", destino: fecha_hora_ult_modif, regla: timestamp, nulo_permitido: true}

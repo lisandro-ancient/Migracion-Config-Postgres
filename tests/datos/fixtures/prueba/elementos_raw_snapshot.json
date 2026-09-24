@@ -1,0 +1,11 @@
+{
+  "_meta": {"fuente": "prueba", "tabla_origen": "ELEMENTOS", "conteo_origen": 6, "nota": "SINTÉTICO — ver tests/datos/LEEME.md"},
+  "filas": [
+    {"ELEMENTO_ID": 1, "NOMBRE": "Elemento uno   ", "ACTIVO": "S", "ESTATUS": "a", "GRUPO_ID": 10, "IMPORTE": "100.50", "FECHA_ALTA": "2020-01-15 10:30:00", "NOTAS": null},
+    {"ELEMENTO_ID": 2, "NOMBRE": "Elemento dos", "ACTIVO": "N", "ESTATUS": "B", "GRUPO_ID": 20, "IMPORTE": "-25.1250", "FECHA_ALTA": "2021-06-01 00:00:00", "NOTAS": "  con nota "},
+    {"ELEMENTO_ID": 3, "NOMBRE": "Elemento tres", "ACTIVO": "S", "ESTATUS": "A", "GRUPO_ID": null, "IMPORTE": "0", "FECHA_ALTA": "2022-02-02 08:00:00", "NOTAS": ""},
+    {"ELEMENTO_ID": 4, "NOMBRE": "Elemento cuatro", "ACTIVO": "X", "ESTATUS": "A", "GRUPO_ID": 10, "IMPORTE": "999", "FECHA_ALTA": "2022-03-03 09:00:00", "NOTAS": null},
+    {"ELEMENTO_ID": 5, "NOMBRE": "Dólar ñandú", "ACTIVO": "S", "ESTATUS": "A", "GRUPO_ID": 20, "IMPORTE": "10", "FECHA_ALTA": "2023-04-04 12:00:00", "NOTAS": null},
+    {"ELEMENTO_ID": 6, "NOMBRE": "Elemento seis", "ACTIVO": "N", "ESTATUS": "B", "GRUPO_ID": 10, "IMPORTE": "1.1", "FECHA_ALTA": "2024-05-05 13:45:00.123000", "NOTAS": null}
+  ]
+}
