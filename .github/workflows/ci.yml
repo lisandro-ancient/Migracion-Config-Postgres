@@ -139,7 +139,7 @@ jobs:
       - name: Resumen
         if: always()
         run: python ci/resumen_junit.py "Unitarias (Python ${{ matrix.python }})" junit-unitarias.xml
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: matrix.python == env.PYTHON_PRINCIPAL
         with:
           name: cobertura-unitarias
@@ -181,7 +181,7 @@ jobs:
       - name: Resumen
         if: always()
         run: python ci/resumen_junit.py "Integración" junit-integracion.xml
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: cobertura-integracion
           path: .coverage.integracion
@@ -210,7 +210,7 @@ jobs:
       - name: Resumen
         if: always()
         run: python ci/resumen_junit.py "Diferencial" junit-diferencial.xml
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: evidencia-migracion
@@ -218,7 +218,7 @@ jobs:
             runs/
             sql/config.sql
           retention-days: 14
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: cobertura-diferencial
           path: .coverage.diferencial
@@ -252,7 +252,7 @@ jobs:
             echo "$codigo $ruta"; [ "$codigo" = "200" ] || exit 1
           done
           curl -s http://127.0.0.1:8020/settings | grep -q "sí, confirmado por el servidor"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: cobertura-e2e
           path: .coverage.e2e
@@ -278,7 +278,7 @@ jobs:
           coverage report --format=markdown >> "$GITHUB_STEP_SUMMARY"
           coverage html -d htmlcov
           coverage report --fail-under="$COBERTURA_MINIMA"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: reporte-cobertura
           path: htmlcov/
@@ -303,7 +303,7 @@ jobs:
         run: |
           python -m build
           twine check --strict dist/*
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: paquete
           path: dist/
